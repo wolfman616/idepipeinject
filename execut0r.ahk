@@ -100,6 +100,7 @@ EditViewInit()
 winset,ExStyle,+0x18,ahk_id %ldr_hWnd%
 gui,Cut0r:show,hide Center w%init_W% h%init_H%  ,% Titlemain ;-- Show it
 Win_Animate(ldr_hWnd,"slide hneg activate",900) ;gui,Cut0r:show,na ;show_upd8()
+
 Aero_BlurWindow(ldr_hWnd)
 (opMount2DTop? Win2DTopTrans(ldr_hWnd,(deskX:= (guipos:= wingetpos(ldr_hWnd)).x),(desky:= guipos.y)))
 IDT_LV2:= IDropTarget_Create(hTab,"_LV", 1) ; no format required - for testing. 
@@ -154,10 +155,13 @@ sleep,100
 PaintLexForce:= True
 settimer,PaintLexForceoff,-900
 settimer,_Lex,-10
+
+
+
 win_move(gradwnd,0,0,a_screenwidth,a_screenheight)
 RE2:= DllCall("SetParent","uint",gradwnd,"uint",ldr_hWnd)
 sleep,200
-win_move(gradwnd,18,42,init_w+20,init_H)
+win_move(gradwnd,13,42,init_w+20,init_H)
 winset,transparent,190,ahk_id %gradwnd%
 winset,transparent,10,ahk_id %hipath%
 
@@ -247,12 +251,10 @@ gradupdate(w,h) {
 	bmpIPath.G.DrawPath(pathSquare)
 	bmpIPath.SetToControl(hipath)
 	bmpIPath.SetToControl(thWnd)
-	winSet,Region,1-1 w%w% h%h% R20-20,ahk_id %hipath% ;msgbox	RE2:= DllCall("SetParent","uint",hipath,"uint",ldr_hwnd)
-	win_move(gradwnd,sciinit_x+20,sciinit_y,w,h,1)
-	winSet,Region,1-1 w%w% h%h% R20-20,ahk_id %hipath% ;msgbox	RE2:= DllCall("SetParent","uint",hipath,"uint",ldr_hwnd)
+	winSet,Region,1-0 w%w% h%h% R20-20,ahk_id %hipath% ;msgbox	RE2:= DllCall("SetParent","uint",hipath,"uint",ldr_hwnd)
+	win_move(gradwnd,sciinit_x+15,sciinit_y,w,h,1)
+	winSet,Region,1-0 w%w% h%h% R20-20,ahk_id %gradwnd% ;msgbox	RE2:= DllCall("SetParent","uint",hipath,"uint",ldr_hwnd)
 	return,
-	anus:=Gdip_GraphicsFromHWNDii(hipath)
-	; cunt:=CreateHBITMAPFromBitmap(anus)
 		; 2DC_Frame:= DllCall("GetDC","UInt",gradwnd)
 	; HDC_Frame:= DllCall("GetDC","UInt",hgui)
 	; sleep,100
@@ -264,18 +266,6 @@ gradupdate(w,h) {
 	
 }
 
-CreateHBITMAPFromBitmap(pBitmap, Background:=0x00000000) {
-; background should be zero, to not alter alpha channel of the image
-	hBitmap := 0
-	If !pBitmap
-	{
-		gdipLastError := 2
-		Return
-	}
-
-	gdipLastError := DllCall("gdiplus\GdipCreateHBITMAPFromBitmap", "UPtr", pBitmap, "UPtr*", hBitmap, "int", 0)
-	return hBitmap
-}
 
 paletteinit(){
 	global
@@ -305,15 +295,32 @@ paletteinit(){
 palactivate:
 if(Palactive)
 	return,
+else,if(initpal) {
+	LPos:="",	LPos:= wingetPos(ldr_hWnd)
+	;gui,APCBackMain:Show,% " x" (LPos.x+LPos.W+5) " y" (LPos.y+(78)),Palette
+	LPos:= wingetPos(ldr_hWnd)
+	;win_move(hpal,LPos.x+LPos.W+5,LPos.y+(78),"","","")
+	palactive:= True
+	win_move(hpal,LPos.x+LPos.W+5,LPos.y+(78),"","","")
+	Win_Animate(hpal,"activate slide hpos", 210)
+	if(!opAlwaysOnTop)
+		gui,APCBackMain:-alwaysontop ;gui,APCBackMain:show ,x1536 y430 NoActivate, % "LedPal"
+	winset,transparent,247,ahk_id %hpal%
+	return,
+}
 LPos:= wingetPos(ldr_hWnd)
-gui,APCBackMain:Show,% " hide x" (LPos.x+LPos.W) " y" (LPos.y+(78)),Palette
+gui,APCBackMain:Show,% " na hide x" (LPos.x+LPos.W) " y" (LPos.y+(78)),Palette
 gui,APCBackMain:+lastfound +alwaysontop
 (opaeroglass?Aero_BlurWindow(hpal))
 winset,ExStyle,+0x08000000,ahk_id %hpal%
 winset,transparent,240,ahk_id %hpal%
 gui,APCBackMain:-SysMenu -Caption
+LPos:= wingetPos(ldr_hWnd)
+win_move(hpal,LPos.x+LPos.W+5,LPos.y+(78),"","","")
 palactive:= True
-Win_Animate(hpal,"slide hpos", 210)
+initpal:=true
+win_move(hpal,LPos.x+LPos.W+5,LPos.y+(78),"","","")
+Win_Animate(hpal,"activate slide hpos", 210)
 if(!opAlwaysOnTop)
 	gui,APCBackMain:-alwaysontop ;gui,APCBackMain:show ,x1536 y430 NoActivate, % "LedPal"
 winset,transparent,247,ahk_id %hpal%
@@ -330,16 +337,30 @@ winset,transparent,off,ahk_id %$%
 return,
 
 paltopp4:
-if(palactive)
-	if(!palmovtrig) {
-		gui,APCBackMain:+lastfound 
-		gui,APCBackMain:+alwaysonTop 
-		if(!opAlwaysOnTop)
-			gui,APCBackMain:-alwaysonTop 
-		palmovtrig:= True ;winset,transparent,240,ahk_id %hpal%
-	}
-LPos:= wingetPos(ldr_hWnd)
-win_move(hpal,LPos.x+LPos.W,LPos.y+(78),"","","")
+if(!palactive) {
+		gui,APCBackMain:hide
+		gui,APCBackMain:show,% "hide x" (r_Wpos.x+r_Wpos.W) " y" (r_Wpos.y+(78)),
+	} else {
+	LPos:= wingetPos(ldr_hWnd)
+win_move(hpal,LPos.x+LPos.W+5,LPos.y+(78),"","","")
+settimer,paltopp5,-1
+}
+return,
+
+paltopp5:
+	if(palactive) {
+		if(!palmovtrig) {
+			gui,APCBackMain:+lastfound 
+			gui,APCBackMain:+alwaysonTop 
+			if(!opAlwaysOnTop)
+				gui,APCBackMain:-alwaysonTop 
+			palmovtrig:= True ;winset,transparent,240,ahk_id %hpal%
+		}
+	} else if(!palactive) {
+		gui,APCBackMain:hide
+		gui,APCBackMain:show,% "hide x" (r_Wpos.x+r_Wpos.W) " y" (r_Wpos.y+(78)),
+	} ;else,win_move(hpal,r_Wpos.x+r_Wpos.W+12,r_Wpos.y+(78),"","","")
+
 return,
 
 
@@ -372,37 +393,40 @@ Run3:	; destroyed until AutoHotkey also closes its handle.)
 Run4:	; Wait for AutoHotkey to connect to open the "file".
 Run5:	; Standard AHK needs a UTF-8 BOM to work via pipe. If we're running on
 Run6:	; Unicode AHK_L, 'Script' contains a UTF-16 string so add that BOM instead:
-ttt("Launching " ahk_portable:= ((%A_ThisLabel%).pkg),"tray",1)
+TT("Launching " ahk_portable:= ((%A_ThisLabel%).pkg),"tray",1)
 pipe(A_ThisLabeL)
 return,
 
 EnterSizeMove(wParam="") {
 	global
 	ControlGetPos,,,W,,,ahk_id %TBhWnd% ;SetWindowPos(bcnt.X,bcnt.Y,bcnt.W,bcnt.H,0,0x4014) ;SWP_NOACTIVATE|SWP_NOZORDER
-	r_Wpos:= wingetpos(ldr_hWnd)	;ttt(r_Wpos.w "`n" r_Wpos.h)
+	r_Wpos:= wingetpos(ldr_hWnd)	;tt(r_Wpos.w "`n" r_Wpos.h)
 	if( r_Wpos.w ) {
 		r_Wpos.w < 1118? r_Wpos.w:= 1018 : r_Wpos.w:= r_Wpos.w -14
 		r_Wpos.h < 586? r_Wpos.h:= 586  : r_Wpos.h:= r_Wpos.h -49
-	guiControl,Move,% hTab,% "x18 y" 0 " w" r_Wpos.w ;win_move(r_Wpos.x+10,r_Wpos.y,w-48,"","")
+		guiControl,Move,% hTab,% "x18 y" 0 " w" r_Wpos.w-35 ;win_move(r_Wpos.x+10,r_Wpos.y,w-48,"","")
 			settimer,TBRePos,-2
-	; settimer,show_upd8,-1000 ; TBRePos()
-		loop,5
+	; 	settimer,show_upd8,-1000 ; TBRePos()
+		loop,6
 			;aa:= "b" . a_index . "hWnd" ;win_move(aa,r_Wpos.h-212,"","","")
-			GuiControl,move,% (run%a_index%).hWnd,% "y" r_Wpos.h-187 
+			GuiControl,move,% (run%a_index%).hWnd,% "y" r_Wpos.h-135  
+		loop,8
+			GuiControl,move,% b%a_index%hWnd,% "y" r_Wpos.h-135  
+
 		loop,parse,% "vAdd,ModifyName,tab_icon_set,TabDelete,TabDeleteAll,buttoncancel,r3load",`,
-			GuiControl,move,%a_loopfield%,% "y" r_Wpos.h-212
-		sleep,40
+			GuiControl,move,%a_loopfield%,% "y" r_Wpos.h-165
 	}
-	if(!palactive) {
-		gui,APCBackMain:hide
-		gui,APCBackMain:show,% "hide x" (r_Wpos.x+r_Wpos.W) " y" (r_Wpos.y+(78)),
-	} else,win_move(hpal,r_Wpos.x+r_Wpos.W+12,r_Wpos.y+(78),"","","")
+	
 	;settimer,TabUpdate,-10	; win_move(ldr_hWnd,r_Wpos.x,r_Wpos.y,r_Wpos.w+10,r_Wpos.h,"") ;
+	settimer test,-1
+
 	return,
 }
 
 TBRePos() {
 	global
+		win_move(hpal,r_Wpos.x+r_Wpos.W+12,r_Wpos.y+(78),"","","")
+
 	;ControlGetPos,,,W,H,,ahk_id %TBhWnd% ; SetWindowPos(bcnt.X,bcnt.Y , bcnt.W , bcnt.H,0, 0x4014); SWP_NOACTIVATE | SWP_NOZORDER
 	wingetPos,,,W,H,ahk_id %ldr_hWnd% ; SetWindowPos(bcnt.X,bcnt.Y , bcnt.W , bcnt.H,0, 0x4014);SWP_NOACTIVATE | SWP_NOZORDER ;win_move(hsci,4,44,w-38,r_Wpos.h -300,1)
 	SendMessage,0x421,,,,ahk_id %hTB% ; TB_AUTOSIZE
@@ -490,8 +514,8 @@ statusbarinit() {
 
 
 buttons_1() {
-	global
-	by +=83
+	global 
+	by +=183
 	gui,Cut0r:Tab
 	gui,Cut0r:-dpiscale
 	gui,Cut0r:Add,Button,y%by% xm+10 gpip3exec vpip3exec +hWndb1hWnd,%A_Space%Add%A_Space%
@@ -556,7 +580,7 @@ buttons_2() {
 }
 
 TB_Handla(lParam,wParam) {
-	ttt("dfgfdggfg" lParam " " wParam)
+	tt("dfgfdggfg" lParam " " wParam)
 	if A_GuiControlEvent&&(A_GuiControlEvent!="N")
 		msgb0x(A_GuiControlEvent)
 }
@@ -584,11 +608,10 @@ Toolbar_SetButtSize(hCtrl,W,H="") {
 }
 
 WM_COMMAND(wParam,lParam,uMsg,hWnd){
-return
 	global buttpressnum
 	DetectHiddenWindows, On
 	WinGetClass, vWinClass, % "ahk_id " lParam
-	;ttt("dfgfg" vWinClass)
+	;tt("dfgfg" vWinClass)
 	if(vWinClass = "ToolbarWindow32") {
 		if(uMsg=273) 
 			buttpresshandla(buttpressnum:= wParam +1)
@@ -714,7 +737,7 @@ winset redraw,,ahk_id %gradwnd%
 return,
 
 #F::
-ttt(TBRePos())
+TBRePos()
 return,
 
 #y::
@@ -733,13 +756,13 @@ return,
 SetWindowPos(TBhWnd,1,1,1120,30,0,0x4014) ; SWP_NOACTIVATE|SWP_NOZORDER ;
 return,
 
-DllCall("SetWindowBand","ptr",hgui,"ptr",0,"uint",BandIncr++)
-ttt(BandIncr)
-return,
+; DllCall("SetWindowBand","ptr",hgui,"ptr",0,"uint",BandIncr++)
+; tt(BandIncr)
+; return,
 
 
 ^H::
-ttt(r:= SCI.sETUSETABS("",1))
+tt(r:= SCI.sETUSETABS("",1))
 sci.SCI_SETTABWIDTH("",1)
 return,
 
@@ -760,7 +783,7 @@ return,
 ;*                 *; {
 ;*******************; % (%cmd%)
 
-SCI_NOTIFY(a="",b="",c="",d=""){ ;if(c!=78)
+SCI_NOTIFY(a="",b="",c="",d="") { ;if(c!=78)
 	if(a!=49374) ;not yet understood.;
 	msgbox,% "notify a:" a "`nb:" b  "`nc:" c  "`nd:" d  
 }
@@ -768,8 +791,8 @@ SCI_NOTIFY(a="",b="",c="",d=""){ ;if(c!=78)
 OnMsgz() {
 	global
 	OnExit("quit")
-	OnMessage(0x0100,"WM_KEYDN")
-	OnMessage(0x0101,"WM_KEYUP")
+							 
+							 
 	;loop,parse,% "0x007C,0x007D,0x31E,0x31F,0x320,0x15",`.
 		;OnMessage(a_loopfield,"TBRePos")	; 0x007D WM_StyleCHANGED ; attempt to handle events which require a wm_paint post, Style changing unable to find see below
 	;OnMessage(0x007D,"TBRePos")				; 0x007D WM_StyleCHANGED deosnt proc when change Styles?
@@ -777,16 +800,19 @@ OnMsgz() {
 	OnMessage(0x004A,"Receive_WM_COPYDATA")	; WM_DWMNCRENDERINGCHANGED:= 0x31F
 	OnMessage(0x0404,"AHK_NOTIFYICON")		; WM_DWMCOLORIZATIONCOLORCHANGED:= 0x320
 	OnMessage(0x0233,"GuiDropFiles")		; WM_DWMCOMPOSITIONCHANGED:= 0x31E
-	onmessage(0x047,"moved")
-	OnMessage(0x231, "wm_movest")
+	OnMessage(0x0100,"WM_KEYDN")
+	OnMessage(0x0101,"WM_KEYUP")
+;	onmessage(0x047,"moved")
+	OnMessage(2170,"cunt")
+;	OnMessage(0x231, "wm_movest")
 	OnMessage(0x0232,"wm_moveend")
 	OnMessage(0x0111,"WM_COMMAND")
-	;OnMessage(0x0231,"EnterSizeMove")
+	OnMessage(0x0231,"EnterSizeMove")
 	OnMessage(0x0005,"EnterSizeMove")
-	OnMessage(0x0003,"wm_move")
 	OnMessage(0x0006,"wm_activate")
-	return
-	OnMessage(2170,"cunt")
+	OnMessage(0x0003,"wm_move")
+								
+	   
 }
 
 wm_activate(){
@@ -796,11 +822,11 @@ wm_activate(){
 	return,
 }
 
-WM_LBUTTONDOWN(wParam, lParam, Msg, Hwnd) {
+WM_LBUTTONDOWN(wParam,lParam,Msg,Hwnd) {
 	Global
 	Static Init:= OnMessage(0x0201,"WM_LBUTTONDOWN")
 		MouseGetPos,,,,MouseCtl
-	ttt(MouseCtl)
+	;tooltip % (MouseCtl),,,2
 	GuiControlGet,ColorVal,,% MouseCtl
 	
 	if(!instr(MouseCtl,"static") || (!RegExMatch(ColorVal,"#(.*)", ClipColor))
@@ -817,16 +843,16 @@ WM_LBUTTONDOWN(wParam, lParam, Msg, Hwnd) {
 			Guicontrol,font,% a_loopfield
 			break,
 	}	}
-	ttt("set colour " dix[a_index].colour " to " vfg)	
+	tt("set colour " dix[a_index].colour " to " vfg)	
 	PaintLexForce:= True
 	;settimer,PaintLexForceoff,-900
 	settimer,_Lex,-19 ;msgbox,% dix[a_index].colour " sdfsf " dix[a_index].title 
 	return,
 }
 
-WM_MOUSEMOVE(wParam, lParam, Msg, Hwnd) {
+WM_MOUSEMOVE(wParam,lParam,Msg,Hwnd) {
 	Global ; Assume-global mode
-return
+	  
 	;Static Init:= OnMessage(0x0200,"WM_MOUSEMOVE")
 	;,init2:=0,TME
 	if(init2=0) {
@@ -838,7 +864,7 @@ return
 		DllCall("User32.dll\TrackMouseEvent","UInt",&TME)
 	}
 	MouseGetPos,,,,MouseCtl
-	ttt(MouseCtl)
+	;tt(MouseCtl)
 	GuiControlGet,ColorVal,,% MouseCtl
 }
 
@@ -850,6 +876,8 @@ WM_MOUSELEAVE(wParam, lParam, Msg, Hwnd) {
 WM_lrBUTTONDOWN(wParam,lParam,byref RECT,mDC) {
 	global lbutton_cooldown, lbd, STrigga:= True
 	xs:= lParam &0xffff,	ys:= lParam>>16
+
+((ys<42)? wm_move())
 	pToken00:= Gdip_Startup()
 	   mDC00:= Gdi_CreateCompatibleDC(0)
 	DllCall("gdi32.dll\SetStretchBltMode","Uint",mDC,"int",1)
@@ -887,92 +915,39 @@ WM_lrBUTTONup(wParam="",lParam="") { ; Toggle Maximise & fill ;
 		return,
 }	}
 
-WM_KEYDN(wParam) {
-	kdf:=func("kdfunc").bind(wParam)
-	settimer,% kdf,-1
-	return,
-}
-
-kdfunc(wParam){
-	local
-	static
+WM_KEYDN(wParam="",lParam="",msg="",hwnd="") {
 	global modkeyheld
 	switch,wParam {
 		case,"16","17": (modkey%wParam%held):=true
 	}
-		kdff:=func("ttt").bind(wParam)
-	settimer,% kdff,-1
-}
-
-ttt(txt="fags",bums="",queers="" ){
-	local
-	static
-	tooltip,% txt
-	settimer,t2t,-1000
 	return,
 }
 
-t2t(){
-	local
-	static
-	tooltip
-}
-
 WM_KEYUP(wParam,lParam,msg="",hwnd="") {
-	global ; global hWnd_Par, scriptraw ;	% Format("{:#x}",hwnd)
-	switch,hwnd {
-		case,hsci:			ttt(wParam)
-
-
-		default:return
-	}
+	global ;global hWnd_Par, scriptraw ;% Format("{:#x}",hwnd)
 	static txtl,txtlold,textold,textnew
-	txtlold:= txtl
-	switch,wParam {
+	switch,hwnd {
+		case,hsci: txtlold:= txtl
+		default: return,
+	} switch,wParam {
 		case,"17","16": modkey%wParam%held:= false
 		case,"27"	: settimer,guiclose,-1	; Esc ;
 		case,"20"	: return
 	;	case,"13"	: ;enter
-			gui,par	: submit,nohide
- 			send,{tab}
-			return
-		default:
-			if(modkey16held&&modkey17held) {
+	;		gui,par	: submit,nohide
+	;		send,{tab}
+	;		return
+		default : if(modkey16held&&modkey17held) {
 				tooltip % ("nig ated"),,,2
 				return,
-			}
-			;tooltip % (wParam " up."),,,2
-			;tooltip % (wParam " up."),,,2
-			textold:= Textnew
-			;settimer, _Lex,-10 ; should be handled post notification handler
-			;return,_Lex(byref txt){
-			;settimer,_Lex,-19
-			;ControlGetText,Textnew,,ahk_id %hsci%
-		;	;'sendmessage,SCI_GETTEXT,0,0,,ahk_id %hsci%
-			;txtl:= errorlevel
-		;sendmessage,2008,0,0,scintilla1,ahk_id %ldr_hWnd%
-		;	pos:= errorlevel -1	
-		; aggtext:=strreplace(Textnew,textold,"")
-		;msgbox %  strlen(Textnew) " " strlen(textold) "`n" pos
-			;msgbox % aggtext
-	; sci.StartStyling(pos)
-			; sci.SetTargetRange(pos,pos+1)
-			; sci.SetStyling(1,SCE_AHKL_USERDEFINED22)
-			; sci.SetStyling(1,Style_DEFAULT)			
-						; sci.Updated()
-return,
-sleep,100
-		;ControlGetText,Textnew,,ahk_id %ldr_hWnd%
-			;sci.Updated()
-			;Count:= sci.Count()
-			;SeTxT(sci.text)
-			;postMessage,SCI_GOTOPOS,%pos%,,scintilla1,ahk_id %ldr_hWnd%
+			} settimer,_Lex,-19
+	return,
 }	}
 
 ; WM_WINDOWPOSCHANGED() {
 	; global ; GuiControl,hide,QueryText
 	; static InitH:= 7w7
-	; ttt("A NR")
+	; tt("A NR")
 	; GPos:= wingetpos(ldr_hWnd), 7w7:= GPos.h
 	; (!(InitH= GPos.h)? InitH:= GPos.h, dd:= InitH -100, de:= dd +20)
 
@@ -981,20 +956,32 @@ sleep,100
 
 wm_moveend(){
 	global palmovtrig, palactive
-	moved(), palmovtrig:= False, ttt("end")
+	
 	;if(!palactive) ;winset,transparent,240,ahk_id %hpal%
-	return,	
+	return,	moved(), palmovtrig:= False
 }
 
+	 
+ 
+	
 wm_move(){
 	global
-	settimer,paltopp4,-100
-	return,
+	critical
+try, {
+	if(!palactive) {
+		gui,APCBackMain:hide
+		gui,APCBackMain:show,% "hide x" (r_Wpos.x+r_Wpos.W) " y" (r_Wpos.y+(78)),
+	} else {
+	LPos:= wingetPos(ldr_hWnd)
+win_move(hpal,LPos.x+LPos.W,LPos.y+(78),"","","")
+settimer,paltopp5,-1
+}	return,
+}
 	;settimer, wm_moveend,-100 ;gui,APCBackMain:Show,% "hide x" (LPos.x+LPos.W) " y" (LPos.y+(78)),Palette
 }
 
 moved() {	; return 
-	settimer test,-700
+	;settimer test,-70
 }
 
 TEST() {
@@ -1002,14 +989,17 @@ TEST() {
 	static oldw, oldh
 	;global gradwnd
 	p:= wingetpos(ldr_hWnd)
+	s:= wingetpos(hsci)
 	; winSet,Region,% "1-0 W" p.w " H" p.h " R" (p.w+ p.h) *.05 "-" (p.w+ p.h) *.05 ,ahk_id %gradwnd%
 	if(p.w=oldw && p.h=oldh)
 		return,
-	oldw:= w:=p.w, oldh:= h:=p.h-366
-	win_move(staticwnd,0, 0,w,h,"")
-	guiControl,move, HIPath, w%W% h%H%
-	gradupdate(w,h)
- 	;winSet,Region,% "1-1 W" p.w*1.2 " H" p.h*.9 " R20-20",ahk_id %gradwnd%
+	oldw:= w:=p.w-48, oldh:= h:=p.h-285 
+	
+	
+	win_move(htab,"", 0,w,	p.h-220,"")
+	;guiControl,move, HIPath, w%W% h%H%
+	;winSet,Region,% "1-1 W" p.w " H" p.h " R20-20",ahk_id %HIPath%
+	gradupdate(w-22,h-2)
 }
 
 _Lex(){
@@ -1319,28 +1309,6 @@ SetWindowPos(hWnd,x,y,w,h,hWndInsertAfter:= 0,uFlags:= 0x40) { ; SWP_SHOWWINDOW
 
 EndTask(hWnd,fShutDown,fForce) {
 	return,DllCall("EndTask","int",hWnd,"int",fShutDown,"int",fForce)
-}
-
-Gdip_GraphicsFromHWNDii(HWND, useICM:=0, InterpolationMode:="", SmoothingMode:="", PageUnit:="", CompositingQuality:="") {
-; Creates a pGraphics object that is associated with a specified window handle [HWND]
-; If useICM=1, the created graphics uses ICM [color management - (International Color Consortium = ICC)].
-	pGraphics:= 0
-	function2call:= (useICM=1)? "ICM" : ""
-	gdipLastError:= DllCall("gdiplus\GdipCreateFromHWND" function2call, "UPtr", HWND, "UPtr*", pGraphics)
-	If (gdipLastError=1 && A_LastError=8) ;out of memory;
-		gdipLastError:= 3
-
-	If (pGraphics && !gdipLastError) {
-		If (InterpolationMode!="")
-		 Gdip_SetInterpolationMode(pGraphics, InterpolationMode)
-		If (SmoothingMode!="")
-		 Gdip_SetSmoothingMode(pGraphics, SmoothingMode)
-		If (PageUnit!="")
-		 Gdip_SetPageUnit(pGraphics, PageUnit)
-		If (CompositingQuality!="")
-		 Gdip_SetCompositingQuality(pGraphics, CompositingQuality)
-	}
-	return,pGraphics
 }
 
 setlexerStyle() {
@@ -1762,9 +1730,9 @@ MenuTrayShow() {
 MenHandlr(isTarget="") {
 	global
 	switch,nus:= a_thismenuitem {
-		case "Open Containing": ttt("Opening "   a_scriptdir "..." Open_Containing(A_scriptFullPath),1)
+		case "Open Containing": TT("Opening "   a_scriptdir "..." Open_Containing(A_scriptFullPath),1)
 		case "edit","SUSPEND","pAUSE": MenuPost(%a_thismenuitem%)
-		case "Open Vars" : ttt()
+		case "Open Vars" : tt()
 			PostMessage,0x0111,65407,,,% A_ScriptName " - AutoHotkey"
 		case "r3load" : r3load()
 		case "exit" : exitApp,
@@ -1786,7 +1754,7 @@ AHK_NOTIFYICON(byref wParam="",byref lParam="") {
 		case 0x0204 : return,menutray() ;WM_RBUTTONDN-0x0204l;
 		case 0x0203 : _:="", wParam:=""
 			PostMessage,0x0111,65407,,,% A_ScriptName " - AutoHotkey"
-			Sleep(80),lParam:= (Sleep(11),ttt("Loading...","tray",1)) 
+			Sleep(80),lParam:= (Sleep(11),tt("Loading...","tray",1)) 
 	;	case 0x0206: ; WM_RBUTTONDBLCLK	;	case 0x020B: ; WM_XBUTTONDOWN
 	;	case 0x0201: ; WM_LBUTTONDOWN	;	case 0x0202: ; WM_LBUTTONUP
 	return
@@ -1839,7 +1807,7 @@ varz:
 global opAlwaysOnTop,topmost,opTaskbarItem,tbitem,TBeXtyle,ico_tick,ico_cross
 ,deskY,Scriptnew,scriptraw,textnew,ayboi,TBhWnd,DTopDocked,aHkeXe,fil3:=a_scriptname
 ,evhWnd,ldr_hWnd,htb,TabSelected,Pipes,vcount,icon_array,ppidd,SYSGUI_TBbUTTSZ
-,PtrP,Ptr, colour1:= 0xEE0000, keynames:= "Lctrl,", BandIncr:= 0,match,r_pid
+,PtrP,Ptr, colour1:= 0xEE0000, keynames:= "Lctrl,", BandIncr:= 0,match,r_pid,initpal
 ,ico_tick:="C:\Icon\256\ticAMIGA.ico", ico_cross:="C:\Icon\256\Oxygeclose.ico"
 ,_:= "C:\Program Files\Autohotkey\AutoHotkey",File,Titlemain,h3270,deskX, PaintLexForce
 ,EDIT:= 65304, open:= 65407, Suspend:= 65305, PAUSE:= 65306, exit:= 6530,gradwnd,hgui
@@ -1876,8 +1844,7 @@ r3load() {
 
 Quit() {
 	global
-		OGdip.shutdown()
-
+	OGdip.shutdown()
 	IDT_LV.RevokeDragDrop(), IDT_LV2.RevokeDragDrop()
 	, IDT_LV3.RevokeDragDrop(), IL_Destroy(hIL2)
 	for,index in Pipes
@@ -1885,12 +1852,7 @@ Quit() {
 		nm:= (Pipes[index].name), pid:= (Pipes[index].hWnd)
 		postMessage,0x0111,65307,,,% (nm " - AutoHotkey")
 		sleep,100 ;EndTask(id,0,1);
-	}
-	exitapp,
+	} exitapp,
 	loop,3
-		sleep,500
-}
-
-break(){
-	return,break,
+		sleep,200
 }
