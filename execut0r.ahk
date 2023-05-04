@@ -65,7 +65,7 @@ scriptraw:= "C:\Script\AHK\- _ _ LiB\class_DragDrop.ahk"
 ;=-------=====-==========----------=====-==========----------=====-==========----------=====-==========---
 
 gui,Cut0r:New,-dpiscale 0x568F0000 e0x2080008 ;+ Create G
-gui,Cut0r:+owner +MinSize1106x640 +lastfound +e%TBeXtyle% +resize +hWndldr_hWnd 
+gui,Cut0r:+owner +MinSize1106x640 +lastfound +e%TBeXtyle% +resize +hWndldr_hWnd
 gui,grad:new, +hwndgradwnd -dpiscale
 IconInit(), TabViewInit()
 Butts_init(), comboinit(), tickboxinit()
@@ -76,7 +76,7 @@ gui,Cut0r:show,hide Center w%init_W% h%init_H%  ,% Titlemain ;-- Show it
 Win_Animate(ldr_hWnd,"slide hneg activate",900) ;gui,Cut0r:show,na ;show_upd8()
 Aero_BlurWindow(ldr_hWnd)
 (opMount2DTop? Win2DTopTrans(ldr_hWnd,(deskX:= (guipos:= wingetpos(ldr_hWnd)).x),(desky:= guipos.y)))
-IDT_LV2:= IDropTarget_Create(hTab,"_LV", 1) ; no format required - for testing. 
+IDT_LV2:= IDropTarget_Create(hTab,"_LV", 1) ; no format required - for testing.
 win_move(evhWnd,700,"","","","") ;DllCall("SetWindowBand","ptr",hgui,"ptr",0,"uint",4)
 winget,uib,List,ahk_pid %rPiD% ;ahk_class #32770
 	loop,% uib {
@@ -102,7 +102,7 @@ IDT_LV:= IDropTarget_Create(hTab, "", -1) ; no format required - only for testin
 	MK_SHIFT  := 0x04   ;-- The SHIFT key is down.
 	MK_CONTROL:= 0x08   ;-- The CTRL key is down.
 	MK_MBUTTON:= 0x10   ;-- The middle mouse button is down.
-	MK_ALT    := 0x20   ;-- The ALT key is down. 
+	MK_ALT    := 0x20   ;-- The ALT key is down.
 ;	MK_BUTTON:= ?    ;-- Not documented.
 paletteinit()
 fileRead,ScriptRaw,% ScriptRaw
@@ -124,31 +124,50 @@ winset,redraw,,aHk_id %gradwnd%
 settimer,onMsgz,-1000
 wm_allow()
 settimer,_Lex,-3000
-sleep,3000 
+sleep,3000
 gradinit()
 gradupdate(sciinit_w-22,init_h-302)
 return,
 
-gradinit() {
-	global
-	gui,grad:+lastfound +E0x02080000 -border -caption +owndialogs +alwaysontop +resize -0xC0000
-	Gui,grad:Add,Picture,x0 y0 vhipathz w%init_w% h500 HwndHIPath +0x800000
-	CC:= {Base:{__Get:OGdip.GetColor}}
-	brushFourColors:= [ CC.60a, CC.f09, CC.C0F, CC.50f ]
-	bmpILinear:= new OGdip.Bitmap(a_screenwidth, a_screenheight)
-	bmpIPath  := new OGdip.Bitmap(a_screenwidth, a_screenheight)
-	bmpILinear.G.SetOptions( {smooth:1} )
-	bmpIPath.G.SetOptions( {smooth:1} )
-	pathEllipse:= new OGdip.Path()
-	pathEllipse.AddEllipse(0,0,init_w,500)
-	pathSquare:= new OGdip.Path()
-	pathSquare.AddRectangle(0,0,init_w,500)
-	h:=a_screenwidth,	w:=a_screenheight
-	winset,transparent,18,ahk_id %gradwnd%
-	gui,grad:show, w%init_w% h%init_h% center
-	winSet,Region,1-0 w%init_w% h%init_h% R20-20,ahk_id %gradwnd%
-	gradupdate(init_w,init_h) 
-}
+#h::
+h:=init_H-300, w:=init_w-20l
+winset,redraw,,ahk_id %gradwnd%
+return,
+
+#F::
+TBRePos()
+return,
+
+#y::
+RE2:= DllCall("SetParent","uint",gradwnd,"uint",ldr_hwnd)
+RE2:= DllCall("SetParent","uint",gradwnd,"uint",ldr_hwnd)
+return,
+
+^w:: ;bcnt:= wingetpos(TBhWnd) ;SetWindowPos(bcnt.X,bcnt.Y,bcnt.W,bcnt.H,0,0x4014) ;SWP_NOACTIVATE|SWP_NOZORDER
+win_move(htb,4,r_Wpos.h-98,w,w,"")
+return,
+
+!^w::
+SetWindowPos(TBhWnd,1,1,1120,30,0,0x4014) ; SWP_NOACTIVATE|SWP_NOZORDER ;
+return, ; DllCall("SetWindowBand","ptr",hgui,"ptr",0,"uint",BandIncr++) ;tt(BandIncr); return,
+
+^H::
+tt(r:= SCI.sETUSETABS("",1))
+sci.SCI_SETTABWIDTH("",1)
+return,
+
+#z:: ;testing injection to gain access to the scripts threads
+code =
+(LTrim
+	msgb0x(SYSGUI_TBbUTTSZ,"is father")
+)
+dllFile:= 	FileExist("C:\Program Files\Autohotkey\Lib\AutoHotkey.dll")
+	? "C:\Program Files\Autohotkey\Lib\AutoHotkey.dll"
+	:  (A_PtrSize=8)? "C:\Program Files\Autohotkey\Lib\AutoHotkey.dll"
+	:	"C:\Program Files\Autohotkey\LiB\minhook\x32\x32\AutoHotkey.dll"
+rThread:= InjectAhkDll(ppidd,dllFile,"") ;rThread.Exec(code)
+return,
+
 
 gradupdate(w,h) {
 	global
@@ -164,7 +183,7 @@ gradupdate(w,h) {
 	pathBrush.SetMode("Smooth", 1, 1)
 	pathBrush.SetCenterColor(CC.cyan)
 	pathBrush.UseGamma:= 1
-	pathBrush.SetCenterPoint(W*.5,H*.5) 
+	pathBrush.SetCenterPoint(W*.5,H*.5)
 	bmpILinear.G.DrawRectangle(0,0,W,H)
 	bmpIPath.G.DrawPath(pathSquare)
 	bmpIPath.SetToControl(hipath)
@@ -175,31 +194,6 @@ gradupdate(w,h) {
 	return,
 }
 
-
-paletteinit() {
-	global
-	gui,APCBackMain:New,-DPIScale +Toolwindow +Owner -SysMenu +AlwaysOnTop -0x4000000  +HWNDhPal,Palette
-	gui,APCBackMain: Font, s9 cblack,Continuum Light ;gui,APCBackMain:font, csilver bold
-	gui,APCBackMain: -Resize -Caption +lastfound
-	gui,APCBackMain:Margin,0,0
-	gui,APCBackMain:Color,000000
-	n:= 10,	y:=0
-	For,RowNum,ColorName In ColorList {
-		For,ColNum,ColorHex In Colors[ColorName] {
-			gui,Add,Text,% "x" (n *ColNum-5) -n " y" (11 *RowNum) -n " w" n+2 " h" n+2 " +0x4E +HWNDhColor" A_Index, % ColorName " - #" ColorHex
-			CtlColor(ColorHex, hColor%A_Index%)
-		}
-		((RowNum<10)? floor((n+=0.05*RowNum)) : floor((n-=0.011*(RowNum/1))))
-	}
-	loop,parse,% Flows,`,
-	{
-		gui,Add,Radio,% "+hwndb" a_index " cBlack y" (-20+20 * a_index) " x128 v" a_loopfield " gpalbutthandla",% a_loopfield
-		nog:= bgrRGB(nog:= substr(dix[a_index].colour,3,6))
-		gui,APCBackMain: Font,c%nog%
-		Guicontrol,font,% a_loopfield
-		global (%a_loopfield%), ("b" , a_index)
-	}
-}
 
 Palactivate:
 if(Palactive)
@@ -252,10 +246,10 @@ if(!Palactive) {
 PalTopp5:
 if(Palactive) {
 	if(!palmovtrig) {
-		gui,APCBackMain:+lastfound 
-		gui,APCBackMain:+alwaysonTop 
+		gui,APCBackMain:+lastfound
+		gui,APCBackMain:+alwaysonTop
 		if(!opAlwaysOnTop)
-			gui,APCBackMain:-alwaysonTop 
+			gui,APCBackMain:-alwaysonTop
 		palmovtrig:= True
 	} ;else,win_move(hpal,r_Wpos.x+r_Wpos.W+12,r_Wpos.y+(78),"","","")
 } else if(!Palactive) {
@@ -303,7 +297,7 @@ EnterSizeMove(wParam="") {
 	if( r_Wpos.w ) {
 		r_Wpos.w < 1118? r_Wpos.w:= 1018 : r_Wpos.w:= r_Wpos.w -14
 		r_Wpos.h < 586? r_Wpos.h:= 586  : r_Wpos.h:= r_Wpos.h -49
-		guiControl,Move,% hTab,% "x18 y" 0 " w" r_Wpos.w-35 
+		guiControl,Move,% hTab,% "x18 y" 0 " w" r_Wpos.w-35
 		settimer,TBRePos,-1
 		loop,5
 			GuiControl,move,% (run%a_index%).hWnd,% "y" r_Wpos.h-135
@@ -321,9 +315,9 @@ EnterSizeMove(wParam="") {
 TBRePos() {
 	global
 	win_move(hpal,r_Wpos.x+r_Wpos.W+12,r_Wpos.y+(78),"","","")
-	wingetPos,,,W,H,ahk_id %ldr_hWnd% ;SWP_NOACTIVATE | SWP_NOZORDER 
+	wingetPos,,,W,H,ahk_id %ldr_hWnd% ;SWP_NOACTIVATE | SWP_NOZORDER
 	SendMessage,0x421,,,,ahk_id %hTB% ;\TB_AUTOSIZE ;winset,Redraw,,ahk_id %hTab%
-	(DTopDocked? win_move(htb,1,h-96,"","","") : win_move(htb,9,h-140,"",70,"")) 
+	(DTopDocked? win_move(htb,1,h-96,"","","") : win_move(htb,9,h-140,"",70,""))
 	win_move(hsci,x+6,42,r_Wpos.w-40,r_Wpos.h -249,"")
 	SendMessage,0x454,0,0x90,,ahk_id %hTB% ;only dblbuff;
 	return,0
@@ -403,7 +397,6 @@ WM_COMMAND(wParam,lParam,uMsg,hWnd){
 	}
 }
 
-
 ButtonCancel:
 return,
 
@@ -450,50 +443,57 @@ GUIControl,,Scintilla1,% (Scriptnew?Scriptnew : ScriptRAW)
 TabUpdate()
 return,
 
-#h::
-h:=init_H-300, w:=init_w-20l
-winset,redraw,,ahk_id %gradwnd%
-return,
-
-#F::
-TBRePos()
-return,
-
-#y::
-RE2:= DllCall("SetParent","uint",gradwnd,"uint",ldr_hwnd)
-RE2:= DllCall("SetParent","uint",gradwnd,"uint",ldr_hwnd)
-return,
-
-^w:: ;bcnt:= wingetpos(TBhWnd) ;SetWindowPos(bcnt.X,bcnt.Y,bcnt.W,bcnt.H,0,0x4014) ;SWP_NOACTIVATE|SWP_NOZORDER
-win_move(htb,4,r_Wpos.h-98,w,w,"")
-return,
-
-!^w::
-SetWindowPos(TBhWnd,1,1,1120,30,0,0x4014) ; SWP_NOACTIVATE|SWP_NOZORDER ;
-return, ; DllCall("SetWindowBand","ptr",hgui,"ptr",0,"uint",BandIncr++) ;tt(BandIncr); return,
-
-^H::
-tt(r:= SCI.sETUSETABS("",1))
-sci.SCI_SETTABWIDTH("",1)
-return,
-
-#z:: ;testing injection to gain access to the scripts threads
-code =
-(LTrim
-	msgb0x(SYSGUI_TBbUTTSZ,"is father")
-)
-dllFile:= 	FileExist("C:\Program Files\Autohotkey\Lib\AutoHotkey.dll")
-	? "C:\Program Files\Autohotkey\Lib\AutoHotkey.dll"
-	:  (A_PtrSize=8)? "C:\Program Files\Autohotkey\Lib\AutoHotkey.dll"
-	:	"C:\Program Files\Autohotkey\LiB\minhook\x32\x32\AutoHotkey.dll"
-rThread:= InjectAhkDll(ppidd,dllFile,"") ;rThread.Exec(code)
-return,
-
 ;*******************;
 ;*                 *;
 ;*    Functions    *;
 ;*                 *;
 ;*******************;
+
+paletteinit() {
+	global
+	gui,APCBackMain:New,-DPIScale +Toolwindow +Owner -SysMenu +AlwaysOnTop -0x4000000  +HWNDhPal,Palette
+	gui,APCBackMain: Font, s9 cblack,Continuum Light ;gui,APCBackMain:font, csilver bold
+	gui,APCBackMain: -Resize -Caption +lastfound
+	gui,APCBackMain:Margin,0,0
+	gui,APCBackMain:Color,000000
+	n:= 10,	y:=0
+	For,RowNum,ColorName In ColorList {
+		For,ColNum,ColorHex In Colors[ColorName] {
+			gui,Add,Text,% "x" (n *ColNum-5) -n " y" (11 *RowNum) -n " w" n+2 " h" n+2 " +0x4E +HWNDhColor" A_Index, % ColorName " - #" ColorHex
+			CtlColor(ColorHex, hColor%A_Index%)
+		}
+		((RowNum<10)? floor((n+=0.05*RowNum)) : floor((n-=0.011*(RowNum/1))))
+	}
+	loop,parse,% Flows,`,
+	{
+		gui,Add,Radio,% "+hwndb" a_index " cBlack y" (-20+20 * a_index) " x128 v" a_loopfield " gpalbutthandla",% a_loopfield
+		nog:= bgrRGB(nog:= substr(dix[a_index].colour,3,6))
+		gui,APCBackMain: Font,c%nog%
+		Guicontrol,font,% a_loopfield
+		global (%a_loopfield%), ("b" , a_index)
+	}
+}
+
+gradinit() {
+	global
+	gui,grad:+lastfound +E0x02080000 -border -caption +owndialogs +alwaysontop +resize -0xC0000
+	Gui,grad:Add,Picture,x0 y0 vhipathz w%init_w% h500 HwndHIPath +0x800000
+	CC:= {Base:{__Get:OGdip.GetColor}}
+	brushFourColors:= [ CC.60a, CC.f09, CC.C0F, CC.50f ]
+	bmpILinear:= new OGdip.Bitmap(a_screenwidth, a_screenheight)
+	bmpIPath  := new OGdip.Bitmap(a_screenwidth, a_screenheight)
+	bmpILinear.G.SetOptions( {smooth:1} )
+	bmpIPath.G.SetOptions( {smooth:1} )
+	pathEllipse:= new OGdip.Path()
+	pathEllipse.AddEllipse(0,0,init_w,500)
+	pathSquare:= new OGdip.Path()
+	pathSquare.AddRectangle(0,0,init_w,500)
+	h:=a_screenwidth,	w:=a_screenheight
+	winset,transparent,18,ahk_id %gradwnd%
+	gui,grad:show, w%init_w% h%init_h% center
+	winSet,Region,1-0 w%init_w% h%init_h% R20-20,ahk_id %gradwnd%
+	gradupdate(init_w,init_h)
+}
 
 TabViewinit() {
 	global
@@ -530,7 +530,7 @@ StatusBarinit() {
 Butts_init() {
 	global
 	by +=83
-	gui,Cut0r:Tab 
+	gui,Cut0r:Tab
 	gui,Cut0r:-dpiscale +lastfound
 	gui,Cut0r:Add,Button,hWndb_1hWnd y%by% x10 h34 w100 gpip3exec vpip3exec,%A_Space%Add%A_Space%
 	gui,Cut0r:Add,Button,y%by% x+8 h34 w99 gAdd vAdd +hWndb_2hWnd,%A_Space%Add%A_Space%
@@ -590,7 +590,7 @@ Butts_init() {
 ToolbarInit() {
 	global ;TBStyle_TOOLTIPS:=0x100|TBStyle_LIST:=0x1000 ;Txt-@-side-of-buttons
 	((!SYSGUI_TBbUTTSZ)? SYSGUI_TBbUTTSZ:= 64)
-	gui,Cut0r:Add,Custom,w1 x1 y%by% ClassToolbarWindow32  +hWndTBhWnd +0x110 
+	gui,Cut0r:Add,Custom,w1 x1 y%by% ClassToolbarWindow32  +hWndTBhWnd +0x110
 	ControlGet,hTB,hWnd,,ToolbarWindow321,ahk_id %ldr_hWnd%
 	SendMessage,0x43C,0,0,,ahk_id %hTB%	;TB_SETMAXTEXTROWS ;text omitted from buttons; ;note: if more than one button has the same idCommand, then only the last button with that idCommand will have make the call.
 	SendMessage,0x430,0,% hIL2,,ahk_id %hTB% ;TB_SETIMAGELIST:=0x430 ;TB_ADDBUTTONSA:= 0x414
@@ -652,7 +652,7 @@ ButtHandl4(butt) {
 		case "14":
 		case "15":
 		case "16":
-		case "17": 
+		case "17":
 		if(!Palactive) {
 			settimer,Palactivate,-1
 			return,
@@ -684,7 +684,7 @@ EditViewInit() {
 
 SCI_NOTIFY(a="",b="",c="",d="") { ;if(c!=78)
 	if(a!=49374) ;not yet understood.;
-	msgbox,% "notify a:" a "`nb:" b  "`nc:" c  "`nd:" d  
+	msgbox,% "notify a:" a "`nb:" b  "`nc:" c  "`nd:" d
 }
 
 OnMsgz() {
@@ -734,7 +734,7 @@ WM_LBUTTONDOWN(wParam,lParam,Msg,Hwnd) {
 			break,
 	}	} tt("set colour " dix[a_index].colour " to " vfg)
 	PaintLexForce:= True	;settimer,PaintLexForceoff,-900
-	settimer,_Lex,-19 ;msgbox,% dix[a_index].colour " sdfsf " dix[a_index].title 
+	settimer,_Lex,-19 ;msgbox,% dix[a_index].colour " sdfsf " dix[a_index].title
 	return,
 }
 
@@ -764,7 +764,7 @@ WM_lrBUTTONDOWN(wParam,lParam,byref RECT,mDC) {
 	   mDC00:= Gdi_CreateCompatibleDC(0)
 	DllCall("gdi32.dll\SetStretchBltMode","Uint",mDC,"int",1)
 	DllCall("gdi32.dll\StretchBlt","UInt",mDC00,"Int",0,"Int",0,"Int"
-	, CURRENT_W,"Int",CURRENT_h,"UInt",mDC%oio%,"UInt",0 
+	, CURRENT_W,"Int",CURRENT_h,"UInt",mDC%oio%,"UInt",0
 	, "UInt",0,"Int",0.5*CURRENT_W,"Int",CURRENT_h,"UInt",0x00CC0020) ;SRCCOPY=0x00CC0020;
 	DllCall("UpdateLayeredWindow","Uint",hgui,"Uint",0,"Uint",0,"int64P",CURRENT_W|CURRENT_H<<32
 	, "Uint",mDC00,"int64P",0,"Uint",0,"intP",0xFF<<16|1<<24,"Uint",2) ;settimer,lbutton_cooldown_reset,-400
@@ -808,14 +808,13 @@ WM_KEYUP(wParam,lParam,msg="",hwnd="") {
 		default: return,
 	} switch,wParam {
 		case,"17","16": modkey%wParam%held:= false
-		case,"27"	: settimer,guiclose,-1	; Esc ;
+		case,"27"	: settimer,guiclose,-1	;Esc;
 		case,"20"	: return
 	;	case,"13"	: ;enter
 	;		gui,par	: submit,nohide
 	;		send,{tab}
 	;		return
-		default : if(modkey16held&&modkey17held) {
-				tooltip % ("nig ated"),,,2
+		default : if(modkey16held&&modkey17held) { ;tooltip % ("negated"),,,2
 				return,
 			} settimer,_Lex,-19
 	return,
@@ -841,7 +840,7 @@ wm_move(){
 	} ;settimer, wm_moveend,-100 ;gui,APCBackMain:Show,% "hide x" (LPos.x+LPos.W) " y" (LPos.y+(78)),Palette
 }
 
-moved() { ;return 
+moved() { ;return
 	;settimer test,-70
 }
 
@@ -854,9 +853,9 @@ TEST() {
 	; winSet,Region,% "1-0 W" p.w " H" p.h " R" (p.w+ p.h) *.05 "-" (p.w+ p.h) *.05 ,ahk_id %gradwnd%
 	if(p.w=oldw && p.h=oldh)
 		return,
-	oldw:= w:=p.w-48, oldh:= h:=p.h-285 
-	
-	
+	oldw:= w:=p.w-48, oldh:= h:=p.h-285
+
+
 	win_move(htab,"", 0,w,	p.h-250,"")
 	;guiControl,move, HIPath, w%W% h%H%
 	;winSet,Region,% "1-1 W" p.w " H" p.h " R20-20",ahk_id %HIPath%
@@ -865,7 +864,7 @@ TEST() {
 
 _Lex(){
 	 return
-	static p1d,hw,init:=0	;static textnew, textold	;, txtlold, txtl 
+	static p1d,hw,init:=0	;static textnew, textold	;, txtlold, txtl
 	static phwn,sciname
 	global ldr_hWnd,sci,scihwnd,r_pid
 	if (init=0) {
@@ -912,7 +911,7 @@ Pipe(bLabel) {
 	r_:= (%bLabel%) ".exe"
 	, indx:= SubStr(bLabel,0,1)
 	gui,Cut0r:Submit,nohide
-	local pipe_name:= a_now 
+	local pipe_name:= a_now
 	if(aca:= winexist(ad:= "\\.\pipe\" . pipe_nAME))
 	loop, ;pipe_name:= "'" MyTab . "'" . " - " .AHK_Portable;
 		if(aca:= winexist(ad:= "\\.\pipe\" .  pipe_nAME .  A_index))
@@ -930,7 +929,7 @@ Pipe(bLabel) {
 		, Script:= (A_IsUnicode? chr(0xfeff) : chr(239) chr(187) chr(191)) "#persistent`n" . textnew
 		, char_size:= (A_IsUnicode? 2:1), ssleep(400) ;Crucial;
 		(!dllcall("WriteFile",ptr, %pipe%,"str",Script,"uint",(StrLen(Script)+1)*char_size,"uint*",0,ptr,0)
-		? MsgB0x("WriteFile failed: " ErrorLevel "/" A_LastError) 
+		? MsgB0x("WriteFile failed: " ErrorLevel "/" A_LastError)
 		: Pipes.push({ "name" : a:=pipe_name, "hWnd" : b:=(ppidd)}))
 		dllcall("CloseHandle",ptr,(%pipe%))
 		, ppid:= getPipePiD(pipe_name)
@@ -959,7 +958,7 @@ Win2DTopTrans(Child="",DX="",DY="") {
 	RE2:= DllCall("SetParent","uint",ldr_hWnd,"uint",DesktoP())
 	, LdrPos:= WinGetPos(ldr_hWnd)
 	winset,Style,-0x00440000,ahk_id %ldr_hWnd% ;SendMessage,0x421,,,,ahk_id %hTB%;
-	Win_Move(ldr_hWnd,0,(a_screenheight-LdrPos.h)-10,LdrPos.w+45,LdrPos.h,"") 
+	Win_Move(ldr_hWnd,0,(a_screenheight-LdrPos.h)-10,LdrPos.w+45,LdrPos.h,"")
 	;try,win_move(htb,1,(r_Wpos.h-95),(r_Wpos.w-10),70,70) ;SWP_NOACTIVATE|SWP_NOZORDER=0x4014;
 	winset,ExStyle,+0x30,ahk_id %hTab% ;winset,Transparent,off,ahk_id %ldr_hWnd%;
 	winget,uib,List,ahk_pid %rPiD% ;ahk_class #32770;
@@ -971,21 +970,21 @@ Win2DTopTrans(Child="",DX="",DY="") {
 			winset,Style,-0x10000000,ahk_id %h3270%
 	}	}
 	win_move(ldr_hWnd,acs.x+2,acs.y-2,acs.w-1,acs.h+1)
-	, d2pos:= WinGetPos(ldr_hWnd)	;guiControl,Move,TBhWnd,% "x1 y2" 
+	, d2pos:= WinGetPos(ldr_hWnd)	;guiControl,Move,TBhWnd,% "x1 y2"
 	, show_upd8() ; ToolbarInit() ;guiControl,Move,Cut0r:,TBhWnd,y500 ;sleep,300
 	, bcnt:= wingetpos(TBhWnd), ssleep(20)
 	ControlGetPos,X,Y,W,H,,ahk_id %TBhWnd% ;SetWindowPos(bcnt.X,bcnt.Y,bcnt.W,bcnt.H,0,0x4014
 	ssleep(10)
 	win_move(htb,1,d2pos.h-98,w,70,"") ;SWP_NOACTIVATE|SWP_NOZORDER=0x4014;
-	ssleep(10), ssleep(10) 
+	ssleep(10), ssleep(10)
 	return, ;win_move(htb,1,d2pos.h-98,w,70,"");
 }
 
 Win2DTopOpaque(Child="",DX="",DY="") { ;SWP_NOACTIVATE|SWP_NOZORDER
-	global ;SetWindowPos(bcnt.X,bcnt.Y,bcnt.W,bcnt.H,0,0x4014) 
-	ControlGetPos,,,W,,,ahk_id %TBhWnd% 
+	global ;SetWindowPos(bcnt.X,bcnt.Y,bcnt.W,bcnt.H,0,0x4014)
+	ControlGetPos,,,W,,,ahk_id %TBhWnd%
 	winset,Style,-0x00400000,ahk_id %ldr_hWnd%
-	LdrPos:= WinGetPos(ldr_hWnd) 
+	LdrPos:= WinGetPos(ldr_hWnd)
 	SendMessage,0x421,,,,ahk_id %hTB%
 	Win_Move(ldr_hWnd,0,(a_screenheight-LdrPos.h)-10,LdrPos.w-11,LdrPos.h,"")
 	winset,Transparent,off,ahk_id %ldr_hWnd%
@@ -1005,7 +1004,7 @@ Win2DTopOpaque(Child="",DX="",DY="") { ;SWP_NOACTIVATE|SWP_NOZORDER
 
 IDropTargetOnDrop_LV(TargetObject,pDataObj,KeyState,X,Y,DropEffect) {
 	global SbarhWnd
-	Static CF:= {15: "CF_HDROP"} ; Standard clipboard formats 
+	Static CF:= {15: "CF_HDROP"} ; Standard clipboard formats
 	, TM:= {1:  "HGLOBAL"}	; TYMED enumeration
 	, CF_NATIVE:= A_IsUnicode ? 13 : 1 ; CF_UNICODETEXT  : CF_TEXT
 	, CF_PRIVATEFIRST:= 0x0200	;"Private" formats don't get GlobalFree()'d
@@ -1363,7 +1362,7 @@ SearchRep(byref txt="",byref obj="",byref dicX="") {
 	,Keynames:= "alt|altdown|altup|appskey|backspace|blind|browser\_back|browser\_favorites|browser\_forward|browser\_home|browser\_refresh|browser\_search|browser\_stop|bs|capslock|click|control|ctrl|ctrlbreak|ctrldown|ctrlup|del|delete|down|end|enter|esc|escape|f1|f10|f11|f12|f13|f14|f15|f16|f17|f18|f19|f2|f20|f21|f22|f23|f24|f3|f4|f5|f6|f7|f8|f9|home|ins|insert|joy1|joy10|joy11|joy12|joy13|joy14|joy15|joy16|joy17|joy18|joy19|joy2|joy20|joy21|joy22|joy23|joy24|joy25|joy26|joy27|joy28|joy29|joy3|joy30|joy31|joy32|joy4|joy5|joy6|joy7|joy8|joy9|joyaxes|joybuttons|joyinfo|joyname|joypov|joyr|joyu|joyv|joyx|joyy|joyz|lalt|launch\_app1|launch\_app2|launch\_mail|launch\_media|lbutton|lcontrol|lctrl|left|lshift|lwin|lwindown|lwinup|mbutton|media\_next|media\_play\_pause|media\_prev|media\_stop|numlock|numpad0|numpad1|numpad2|numpad3|numpad4|numpad5|numpad6|numpad7|numpad8|numpad9|numpadadd|numpadclear|numpaddel|numpaddiv|numpaddot|numpaddown|numpadend|numpadenter|numpadhome|numpadins|numpadleft|numpadmult|numpadpgdn|numpadpgup|numpadright|numpadsub|numpadup|pause|pgdn|pgup|printscreen|ralt|raw|rbutton|rcontrol|rctrl|right|rshift|rwin|rwindown|rwinup|scrolllock|shift|shiftdown|shiftup|space|tab|up|volume\_down|volume\_mute|volume\_up|wheeldown|wheelleft|wheelright|wheelup|xbutton1|xbutton2"
 	,Builtins:= "base|clipboard|clipboardall|comspec|errorlevel|False|programfiles|True"
 	,Keywords:= "abort|abovenormal"
-	,Needle:=" 	
+	,Needle:="
 	(LTrim Join Comments
 		ODims)
 		((?:\s);[\n]+)							; Comments
@@ -1449,7 +1448,7 @@ custOverlay() {
 }
 
 byte2string(bytes_var_name="",CodePg="CP936") {
-	static cp:="CP936" 
+	static cp:="CP936"
 	(CodePg!="CP936"? Cp:= CodePg)
 	return,ret:= strget(&(%bytes_var_name%),len-1,Cp)
 }
@@ -1494,7 +1493,7 @@ AHK_NOTIFYICON(byref wParam="",byref lParam="") {
 		case 0x0204 : return,menutray() ;WM_RBUTTONDN-0x0204l;
 		case 0x0203 : _:="", wParam:=""
 			PostMessage,0x0111,65407,,,% A_ScriptName " - AutoHotkey"
-			Sleep(80),lParam:= (Sleep(11),tt("Loading...","tray",1)) 
+			Sleep(80),lParam:= (Sleep(11),tt("Loading...","tray",1))
 	;	case 0x0206: ; WM_RBUTTONDBLCLK	;	case 0x020B: ; WM_XBUTTONDOWN
 	;	case 0x0201: ; WM_LBUTTONDOWN	;	case 0x0202: ; WM_LBUTTONUP
 	return,
@@ -1564,7 +1563,7 @@ global SelCol_Butt
 ,Flows:="Comments,Multiline,Directives,Punctuation,Numbers,Strings,Builtins,Flow,Commands,Functions,Keywords,Keynames,Functions2,Descriptions,Plain"
  	; Tab control Styles ;
 (!PtrP? PtrP:= A_IsUnicode?	"UPtr*" : "UInt*")
- (!Ptr?	Ptr:=  A_IsUnicode?	"Ptr"	: "UInt") 
+ (!Ptr?	Ptr:=  A_IsUnicode?	"Ptr"	: "UInt")
   char_size:=  A_IsUnicode? 	  2 : 1
 global TextBackgroundBrush:= dllcall("CreateSolidBrush","UInt"
 ,	TextBackgroundColor:= 0x060915)
