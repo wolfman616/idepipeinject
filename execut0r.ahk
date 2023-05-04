@@ -89,7 +89,7 @@ gui,Cut0r:New,-dpiscale 0x568F0000 e0x2080008 ;+ Create G
 gui,Cut0r:+owner +MinSize1106x640 +lastfound +e%TBeXtyle% +resize +hWndldr_hWnd 
 gui,grad:new, +hwndgradwnd -dpiscale
 IconInit(), TabViewInit()
-buttons_1(), buttons_2()
+buttons_1()
 comboinit()
 tickboxinit()
 ToolBarInit()
@@ -162,8 +162,8 @@ win_move(gradwnd,0,0,a_screenwidth,a_screenheight)
 RE2:= DllCall("SetParent","uint",gradwnd,"uint",ldr_hWnd)
 sleep,200
 win_move(gradwnd,13,42,init_w+20,init_H)
-winset,transparent,190,ahk_id %gradwnd%
-winset,transparent,10,ahk_id %hipath%
+winset,transparent,120,ahk_id %gradwnd%
+winset,transparent,5,ahk_id %hipath%
 
 winset,style,+0x4d000000 -0x80000000,aHk_id %gradwnd%
 winset,style,+0x4d000000 -0x80000000,aHk_id %hipath%
@@ -208,12 +208,12 @@ gradinit() {
 	pathSquare:= new OGdip.Path()
 	pathSquare.AddRectangle(0,0,init_w,500)
 	h:=a_screenwidth,	w:=a_screenheight
-	win_move(gradwnd,0,0,a_screenwidth,a_screenheight,1)
+;	win_move(gradwnd,0,0,a_screenwidth,a_screenheight,1)
 	;win_move(hipath ,20,20,a_screenwidth,a_screenheight,1)
-	winset,transparent,33,ahk_id %gradwnd% ; win_move(gradwnd,1280,300,1200,500)
-	gui,grad:show, w%a_screenwidth% h%a_screenheight% center ;msgbox % h "£ " w "`n" init_w " " init_h
-	winSet,Region,1-0 w%a_screenwidth% h%a_screenheight% R20-20,ahk_id %gradwnd%
-	gradupdate(a_screenwidth,a_screenheight) ;ControlGet,staticwnd,Hwnd,, static1, ahk_id %gradwnd%
+	winset,transparent,18,ahk_id %gradwnd% ; win_move(gradwnd,1280,300,1200,500)
+	gui,grad:show, w%init_w% h%init_h% center ;msgbox % h "£ " w "`n" init_w " " init_h
+	winSet,Region,1-0 w%init_w% h%init_h% R20-20,ahk_id %gradwnd%
+	gradupdate(init_w,init_h) ;ControlGet,staticwnd,Hwnd,, static1, ahk_id %gradwnd%
 	;winSet,Region,1-0 w%a_screenwidth% h%a_screenheight% R20-20,ahk_id %hipath% ;msgbox	RE2:= DllCall("SetParent","uint",hipath,"uint",ldr_hwnd)
 	;win_move(gradwnd,0,0,a_screenwidth,a_screenheight,1)
 }
@@ -405,43 +405,31 @@ EnterSizeMove(wParam="") {
 		r_Wpos.w < 1118? r_Wpos.w:= 1018 : r_Wpos.w:= r_Wpos.w -14
 		r_Wpos.h < 586? r_Wpos.h:= 586  : r_Wpos.h:= r_Wpos.h -49
 		guiControl,Move,% hTab,% "x18 y" 0 " w" r_Wpos.w-35 ;win_move(r_Wpos.x+10,r_Wpos.y,w-48,"","")
-			settimer,TBRePos,-2
-	; 	settimer,show_upd8,-1000 ; TBRePos()
-		loop,6
-			;aa:= "b" . a_index . "hWnd" ;win_move(aa,r_Wpos.h-212,"","","")
+			settimer,TBRePos,-2 ;settimer,show_upd8,-1000;TBRePos();
+		loop,5 ;aa:= "b" . a_index . "hWnd" ;win_move(aa,r_Wpos.h-212,"","","")
 			GuiControl,move,% (run%a_index%).hWnd,% "y" r_Wpos.h-135  
 		loop,8
-			GuiControl,move,% b%a_index%hWnd,% "y" r_Wpos.h-135  
+			win_move(b_%a_index%hWnd,"",r_Wpos.h-168,"","")
+			;GuiControl,move,% b%a_index%hWnd,% "y" r_Wpos.h-135
+						win_move(b1hWnd,"",r_Wpos.h-135,"","")
 
-		loop,parse,% "vAdd,ModifyName,tab_icon_set,TabDelete,TabDeleteAll,buttoncancel,r3load",`,
-			GuiControl,move,%a_loopfield%,% "y" r_Wpos.h-165
-	}
-	
-	;settimer,TabUpdate,-10	; win_move(ldr_hWnd,r_Wpos.x,r_Wpos.y,r_Wpos.w+10,r_Wpos.h,"") ;
-	settimer test,-1
-
+		;loop,parse,% "Add,ModifyName,tab_icon_set,TabDelete,TabDeleteAll,buttoncancel,r3load",`,
+			;GuiControl,move,%a_loopfield%,% "y" r_Wpos.h-165 ;settimer,TabUpdate,-10	; 
+	} settimer,test,-1 ;win_move(ldr_hWnd,r_Wpos.x,r_Wpos.y,r_Wpos.w+10,r_Wpos.h,"") ;
 	return,
 }
 
 TBRePos() {
 	global
-		win_move(hpal,r_Wpos.x+r_Wpos.W+12,r_Wpos.y+(78),"","","")
-
-	;ControlGetPos,,,W,H,,ahk_id %TBhWnd% ; SetWindowPos(bcnt.X,bcnt.Y , bcnt.W , bcnt.H,0, 0x4014); SWP_NOACTIVATE | SWP_NOZORDER
+	win_move(hpal,r_Wpos.x+r_Wpos.W+12,r_Wpos.y+(78),"","","")
 	wingetPos,,,W,H,ahk_id %ldr_hWnd% ; SetWindowPos(bcnt.X,bcnt.Y , bcnt.W , bcnt.H,0, 0x4014);SWP_NOACTIVATE | SWP_NOZORDER ;win_move(hsci,4,44,w-38,r_Wpos.h -300,1)
-	SendMessage,0x421,,,,ahk_id %hTB% ; TB_AUTOSIZE
-	;TabUpdate()
-		;guiControl,Move,% hTab,% "x18 y" 1 " w" w-12 ;win_move(r_Wpos.x+10,r_Wpos.y,w-48,"","")
-	;win_move(hTab,x+1,0,w-44,"","") ; winset,Transparent,50,ahk_id %hTab%
-	;win_move(EVhWnd,4,"",270,"","")
+	SendMessage,0x421,,,,ahk_id %hTB% ; TB_AUTOSIZE	;TabUpdate()
+	;guiControl,Move,% hTab,% "x18 y" 1 " w" w-12 ;win_move(r_Wpos.x+10,r_Wpos.y,w-48,"","")
+	;win_move(hTab,x+1,0,w-44,"","") ; winset,Transparent,50,ahk_id %hTab% ;win_move(EVhWnd,4,"",270,"","")
 	;winset,Style,-0x1,ahk_id %hTB% ;!ccs_TOP not req here
-	(DTopDocked? win_move(htb,1,h-96,"","","")
-	: win_move(htb,9,h-140,"",70,""))
-	;msgbox % w "`n" h
-	;winset,Redraw,,ahk_id %hTab%
-		win_move(hsci,x+6,42,r_Wpos.w-40,r_Wpos.h -249,"") ; ,win_move(htb,x+10,r_Wpos.h-141,w,"","")
-SendMessage,0x454,0,0x90,,ahk_id %hTB% ;only dblbuff
-
+	(DTopDocked? win_move(htb,1,h-96,"","","") : win_move(htb,9,h-140,"",70,"")) ;winset,Redraw,,ahk_id %hTab%
+	win_move(hsci,x+6,42,r_Wpos.w-40,r_Wpos.h -249,"") ;,win_move(htb,x+10,r_Wpos.h-141,w,"","")
+	SendMessage,0x454,0,0x90,,ahk_id %hTB% ;only dblbuff;
 	return,0
 }
 
@@ -453,8 +441,7 @@ TabUpdate() {
 			ControlGet,h3270%a_index%,hWnd,,#32770,ahk_id %hTab%
 		winset,ExStyle,+0x20,% "ahk_id " h3270%a_index%
 		winset,Style,-0x10000000,% "ahk_id " h3270%a_index%
-	}
-	sleep,100
+	} sleep,100
 	TabSelected:= TAB_GetCurSel(hTab), SBText:= ""
 	.	"There are " . TAB_GetItemCount(hTab) . " tabs. "
 	.	(TabSelected? "Tab " . TabSelected . " (""" . TAB_GetText(hTab,TabSelected) . """) is selected.":"No tab is selected.")
@@ -512,25 +499,20 @@ statusbarinit() {
 	SB_Settext(SBText,4)
 }
 
-
 buttons_1() {
-	global 
-	by +=183
-	gui,Cut0r:Tab
-	gui,Cut0r:-dpiscale
-	gui,Cut0r:Add,Button,y%by% xm+10 gpip3exec vpip3exec +hWndb1hWnd,%A_Space%Add%A_Space%
-	gui,Cut0r:Add,Button,y%by% x+8 gAdd vAdd +hWndb2hWnd,%A_Space%Add%A_Space%
-	gui,Cut0r:Add,Button,y%by% x+8 gModifyName vModifyName +hWndb3hWnd,Modify Name
-	gui,Cut0r:Add,Button,y%by% x+8 gtab_icon_set vtab_icon_set +hWndb4hWnd,Modify Icon
-	gui,Cut0r:Add,Button,y%by% x+8 gtabDelete vtabDelete +hWndb5hWnd,	Delete
-	gui,Cut0r:Add,Button,y%by% x+8 gtabDeleteAll vtabDeleteAll +hWndb6hWnd, Delete All
-	gui,Cut0r:Add,Button,y%by% x+8 gbuttoncancel vbuttoncancel +hWndb7hWnd w70 yp,% "&Cancel"
-	gui,Cut0r:Add,Button,y%by% x+8 gr3load vr3load +hWndb8hWnd,	%A_Space%r3load...%A_Space%
-	by +=62
-}
-
-buttons_2() {
 	global
+	by +=83
+	gui,Cut0r:Tab 
+	gui,Cut0r:-dpiscale +lastfound
+	gui,Cut0r:Add,Button,hWndb_1hWnd y%by% x10 gpip3exec vpip3exec,%A_Space%Add%A_Space%
+	gui,Cut0r:Add,Button,y%by% x+8 gAdd vAdd +hWndb_2hWnd,%A_Space%Add%A_Space%
+	gui,Cut0r:Add,Button,y%by% x+8 gModifyName vModifyName +hWndb_3hWnd,Modify Name
+	gui,Cut0r:Add,Button,y%by% x+8 gtab_icon_set vtab_icon_set +hWndb_4hWnd,Modify Icon
+	gui,Cut0r:Add,Button,y%by% x+8 gtabDelete vtabDelete +hWndb_5hWnd,	Delete
+	gui,Cut0r:Add,Button,y%by% x+8 gtabDeleteAll vtabDeleteAll +hWndb_6hWnd, Delete All
+	gui,Cut0r:Add,Button,y%by% x+8 gbuttoncancel vbuttoncancel +hWndb_7hWnd w70 yp,% "&Cancel"
+	gui,Cut0r:Add,Button,y%by% x+8 gr3load vr3load +hWndb_8hWnd,	%A_Space%r3load...%A_Space%
+	by +=54
 	loop,5 {
 		global ("b" . a_index . "hWnd")
 		bx:= a_index>1?"+12":"8", by
@@ -573,10 +555,8 @@ buttons_2() {
 					, "hWnd" :	B%a_index%hWnd
 					, "PKG"  : "Unicode x64 UserIntAface"
 					, "btn"  : "Ansi-x86"})
-		}
-	GuiControl,text,% (run%a_index%).hWnd,% (run%a_index%).btn ;msgbox % "ahk_id " (run%a_index%).hWnd "`n" (run%a_index%).btn
-	}
-	bY-=18
+		} GuiControl,text,% (run%a_index%).hWnd,% (run%a_index%).btn ;msgbox % "ahk_id " (run%a_index%).hWnd "`n" (run%a_index%).btn
+	} bY-=18
 }
 
 TB_Handla(lParam,wParam) {
@@ -614,12 +594,12 @@ WM_COMMAND(wParam,lParam,uMsg,hWnd){
 	;tt("dfgfg" vWinClass)
 	if(vWinClass = "ToolbarWindow32") {
 		if(uMsg=273) 
-			buttpresshandla(buttpressnum:= wParam +1)
+			ButtHandl4(buttpressnum:= wParam +1)
 	return,
 	}
 }
 
-buttpresshandla(butt) {
+ButtHandl4(butt) {
 	global
 	switch,butt {
 		case "1":
@@ -642,8 +622,7 @@ buttpresshandla(butt) {
 		if(!palactive) {
 			settimer,palactivate,-1
 			return,
-		}
-		else,if(palactive) {
+		} else,if(palactive) {
 			settimer,palahide,-1
 			return,
 		}
@@ -652,10 +631,9 @@ buttpresshandla(butt) {
 	}
 }
 
-show_upd8() {
-	global
-	TabUpdate()	;other_updating: ; msgbox % MyTabPosH "`n" TC_W-5
-	TBRePos()	;winset,Redraw,,ahk_id %ldr_hWnd%
+Show_Upd8() {
+	global ;other_updating: ; msgbox % MyTabPosH "`n" TC_W-5
+	return,TabUpdate(),TBRePos() ;winset,Redraw,,ahk_id %ldr_hWnd%
 }
 
 EditViewInit() {
@@ -950,20 +928,14 @@ WM_KEYUP(wParam,lParam,msg="",hwnd="") {
 	; tt("A NR")
 	; GPos:= wingetpos(ldr_hWnd), 7w7:= GPos.h
 	; (!(InitH= GPos.h)? InitH:= GPos.h, dd:= InitH -100, de:= dd +20)
-
 	;;GuiControl,Move,ahk_id %lvhWnd%,% dd
 ; }
 
 wm_moveend(){
-	global palmovtrig, palactive
-	
-	;if(!palactive) ;winset,transparent,240,ahk_id %hpal%
+	global palmovtrig, palactive ;if(!palactive)winset,transparent,240,ahk_id %hpal%
 	return,	moved(), palmovtrig:= False
 }
 
-	 
- 
-	
 wm_move(){
 	global
 	critical
@@ -996,10 +968,10 @@ TEST() {
 	oldw:= w:=p.w-48, oldh:= h:=p.h-285 
 	
 	
-	win_move(htab,"", 0,w,	p.h-220,"")
+	win_move(htab,"", 0,w,	p.h-250,"")
 	;guiControl,move, HIPath, w%W% h%H%
 	;winSet,Region,% "1-1 W" p.w " H" p.h " R20-20",ahk_id %HIPath%
-	gradupdate(w-22,h-2)
+	gradupdate(w-3,h-8)
 }
 
 _Lex(){
@@ -1812,6 +1784,8 @@ global opAlwaysOnTop,topmost,opTaskbarItem,tbitem,TBeXtyle,ico_tick,ico_cross
 ,_:= "C:\Program Files\Autohotkey\AutoHotkey",File,Titlemain,h3270,deskX, PaintLexForce
 ,EDIT:= 65304, open:= 65407, Suspend:= 65305, PAUSE:= 65306, exit:= 6530,gradwnd,hgui
 ,TBeXtyle:= 0x40110,InitH,IcoDir,ldr_hWnd,char_size,r_Wpos,colz,palactive,palmovtrig
+loop 8
+	global (b_%a_index%hWnd):=""
 global _needl:= "[ \t]*(?!(if\(|while\(|for\())([\w#!^+&<>*~$])+\d*(\([^)]*\)|\[[^]]*\])([\s]|(/\*.*?\*)/|((?<=[\s]);[^\r\n]*?$))*?[\s]*\{|^[ \t]*(?!(if\(|while\(|for\())([\w#!^+&<>*~$])+\d*:(?=([\s]*[\r\n]|[\s]+;.*[\r\n]))|^[ \t]*(?!(;|if\(|while\(|for\())([^\r\n\t])+\d*(?&lt;![\s])"
 ,Dix,
 global SelCol_Butt
