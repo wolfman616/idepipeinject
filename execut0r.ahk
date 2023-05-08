@@ -136,11 +136,18 @@ onminit:
 OnMessage(0x0003,"wm_move")
 return,
 
-#h::
-h:= init_H -300, w:= init_w -20l
-winset,redraw,,ahk_id %gradwnd%
+; #h::
+; h:= init_H -300, w:= init_w -20l
+; winset,redraw,,ahk_id %gradwnd%
+; return,
+
+ #h::
+msgbox
+tt("adssdsadasdsdasda")
+redrawbutts()
 return,
 
+TEST() {
 
 
 #y::
@@ -319,6 +326,20 @@ EnterSizeMove(wParam="") {
 	} settimer,test,-1
 }
 
+redrawbutts() {
+	global
+	loop,5
+		winset,redraw,,% "ahk_id " (run%a_index%).hWnd
+		GuiControl,move,% (run%a_index%).hWnd,% "y" _:=(g_dlgframe? r_Wpos.h-30-SYSGUI_TBbUTTSZ:h-71-SYSGUI_TBbUTTSZ)
+	loop,8
+		winset,redraw,,% "ahk_id " b_%a_index%hWnd
+	loop,4
+		winset,redraw,,% "ahk_id " drop%a_index%
+	loop,2
+		winset,redraw,,% "ahk_id " hchk%a_index%
+	}
+}
+
 TBRePos() {
 	global
 	r_Wpos:=wingetpos(ldr_hWnd)
@@ -330,10 +351,11 @@ TBRePos() {
 	; winset,exstyle,+0x2000000,ahk_id %hTB%
 	ypos:= r_Wpos.h -200 
 		GuiControl,,+e0x -0x100,% hTB,
-if g_dlgframe
+	if(g_dlgframe)
 		win_move(hsci,2,43,r_Wpos.w-21,r_Wpos.h -200 ,"")
 	else,win_move(hsci,6,43,r_Wpos.w-40,r_Wpos.h -220 ,"")
 	SendMessage,0x454,0,0x90,,ahk_id %hTB% ;only dblbuff;
+	redraw()
 	return,0
 }
 
@@ -616,6 +638,7 @@ if(g_dlgframe:=!g_dlgframe) {
 	winset,style,-0x400000,ahk_id %ldr_hWnd%
 	winset,style,+0x40000,ahk_id %ldr_hWnd%
 } else winset,style,+0x400000,ahk_id %ldr_hWnd%
+redraw()
 return,
 
 ~#f:: 
@@ -913,7 +936,7 @@ WM_lrBUTTONup(wParam="",lParam="") { ;Toggle Maximise & fill;
 wm_moveend() {
 	msgbox
 	global palmovtrig, Palactive ;if(!Palactive)winset,transparent,240,ahk_id %hpal%
-	return,	moved(), palmovtrig:= False
+	return,	redraw(), palmovtrig:= False
 }
 
 wm_move() {
@@ -931,13 +954,15 @@ wm_move() {
 	} ;settimer, wm_moveend,-100 ;gui,APCBackMain:Show,% "hide x" (LPos.x+LPos.W) " y" (LPos.y+(78)),Palette
 }
 
-Moved() { ;return
+redraw() { ;return
 	winset,redraw,,Ahk_id %ldr_hWnd%
+		winset,redraw,,Ahk_id %SbarhWnd%
+		winset,redraw,,Ahk_id %htb%
 	winset,redraw,,Ahk_id %htab%
 	winset,redraw,,Ahk_id %hsci% ;sci.GrabFocus() 	;settimer test,-70
+	redrawbutts()
 }
 
-TEST() {
 
 	global gradwnd, HIPath, ldr_hWnd
 	static oldw, oldh
