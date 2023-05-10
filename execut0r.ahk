@@ -76,6 +76,7 @@ Win_Animate(ldr_hWnd,"slide hneg activate",900) ;gui,Cut0r:show,na ;show_upd8()
 Aero_BlurWindow(ldr_hWnd)
 (opMount2DTop? Win2DTopTrans(ldr_hWnd,(deskX:= (guipos:= wingetpos(ldr_hWnd)).x),(desky:= guipos.y)))
 IDT_LV2:= IDropTarget_Create(hTab,"_LV", 1) ; no format required - for testing.
+EditViewInit()
 win_move(evhWnd,700,"","","","") ;DllCall("SetWindowBand","ptr",hgui,"ptr",0,"uint",4)
 winget,uib,List,ahk_pid %rPiD% ;ahk_class #32770
 	loop,% uib {
@@ -87,33 +88,17 @@ winget,uib,List,ahk_pid %rPiD% ;ahk_class #32770
 }	}
 
 IDT_LV:= IDropTarget_Create(hTab, "", -1) ; no format required - only for testing purposes
-;-- DragDrop flags
-	DRAGDROP_S_DROP  := 0x40100 ; 262400
-	DRAGDROP_S_CANCEL:= 0x40101 ; 262401
-;-- DROPEFFECT flags
-	DROPEFFECT_NONE:= 0 ;-- Drop target cannot accept the data.
-	DROPEFFECT_COPY:= 1 ;-- Drop results in a copy. The original data is untouched by the drag source.
-	DROPEFFECT_MOVE:= 2 ;-- Drag source should remove the data.
-	DROPEFFECT_LINK:= 4 ;-- Drag source should create a link to the original data.
-;-- Key state values (grfKeyState parameter)
-	MK_LBUTTON:= 0x01   ;-- The left mouse button is down.
-	MK_RBUTTON:= 0x02   ;-- The right mouse button is down.
-	MK_SHIFT  := 0x04   ;-- The SHIFT key is down.
-	MK_CONTROL:= 0x08   ;-- The CTRL key is down.
-	MK_MBUTTON:= 0x10   ;-- The middle mouse button is down.
-	MK_ALT    := 0x20   ;-- The ALT key is down.
-;	MK_BUTTON:= ?    ;-- Not documented.
+
 paletteinit()
-EditViewInit()
 fileRead,ScriptRaw,% ScriptRaw
 SeTxT(ScriptRaw)
-sleep,10
+sleep,20
 PaintLexForce:= True
 settimer,PaintLexForceoff,-900
 settimer,_Lex,-10
 win_move(gradwnd,0,0,a_screenwidth,a_screenheight)
 RE2:= DllCall("SetParent","uint",gradwnd,"uint",ldr_hWnd)
-sleep,10
+sleep,100
 win_move(gradwnd,13,42,init_w+20,init_H)
 winset,transparent,120,ahk_id %gradwnd%
 winset,transparent,5,ahk_id %hipath%
@@ -148,7 +133,20 @@ redrawbutts()
 return,
 
 TEST() {
-
+ 
+	global gradwnd, HIPath, ldr_hWnd
+	static oldw, oldh
+	;global gradwnd
+	p:= wingetpos(ldr_hWnd)
+	s:= wingetpos(hsci)	; winSet,Region,% "1-0 W" p.w " H" p.h " R" (p.w+ p.h) *.05 "-" (p.w+ p.h) *.05 ,ahk_id %gradwnd%
+	if(p.w=oldw && p.h=oldh)
+		return,
+	oldw:= w:=p.w-48, oldh:= h:=p.h-302
+	;win_move(htab,"", 0,w,	p.h-250,"") 	;guiControl,move, HIPath, w%W% h%H%	;winSet,Region,% "1-1 W" p.w " H" p.h " R20-20",ahk_id %HIPath%
+	if g_dlgframe {
+		gradupdate(p.w-19,h-8)
+	} else,gradupdate(w-3,h-8)
+}
 
 #y::
 RE2:= DllCall("SetParent","uint",gradwnd,"uint",ldr_hwnd)
@@ -314,7 +312,7 @@ EnterSizeMove(wParam="") {
 		else,guiControl,Move,% hTab,% "x18 y" 0 " w" r_Wpos.w-35 " h" r_Wpos.h-240
 		settimer,TBRePos,-1
 		loop,5
-			GuiControl,move,% (run%a_index%).hWnd,% "y" _:=(g_dlgframe? r_Wpos.h-30-SYSGUI_TBbUTTSZ:h-71-SYSGUI_TBbUTTSZ)
+			GuiControl,move,% (run%a_index%).hWnd,% "y" _:=(g_dlgframe? r_Wpos.h-50-SYSGUI_TBbUTTSZ:h-71-SYSGUI_TBbUTTSZ)
 		loop,8
 			win_move(b_%a_index%hWnd,"",r_Wpos._:=(g_dlgframe? r_Wpos.h-70-SYSGUI_TBbUTTSZ:h-110-SYSGUI_TBbUTTSZ),"","")
 		offset:= 18
@@ -885,24 +883,6 @@ WM_LBUTTONDOWN(wParam,lParam,Msg,Hwnd) {
 	return,
 }
 
-; WM_MOUSEMOVE(wParam,lParam,Msg,Hwnd) {
-	; Global ; Assume-global mode ;Static Init:= OnMessage(0x0200,"WM_MOUSEMOVE") ;,init2:=0,TME
-	; if(init2=0) {
-		; VarSetCapacity(TME,16,0)
-		; init2:=1
-		; NumPut(16,TME,0)
-		; NumPut(2,TME,4) ; TME_LEAVE
-		; NumPut(hColorPalette,TME,8)
-		; DllCall("User32.dll\TrackMouseEvent","UInt",&TME)
-	; } MouseGetPos,,,,MouseCtl
-	; GuiControlGet,ColorVal,,% MouseCtl
-; }
-
-; WM_MOUSELEAVE(wParam, lParam, Msg, Hwnd) {
-	; Global ; Assume-global mode
-	; Static Init:= OnMessage(0x02A3,"WM_MOUSELEAVE")
-; }
-
 WM_lrBUTTONDOWN(wParam,lParam,mDC) {
 	global lbutton_cooldown, lbd, STrigga:= True
 	static init, RECT
@@ -959,24 +939,10 @@ redraw() { ;return
 		winset,redraw,,Ahk_id %SbarhWnd%
 		winset,redraw,,Ahk_id %htb%
 	winset,redraw,,Ahk_id %htab%
-	winset,redraw,,Ahk_id %hsci% ;sci.GrabFocus() 	;settimer test,-70
+	winset,redraw,,Ahk_id %hsci% ;sci.GrabFocus()
 	redrawbutts()
 }
 
-
-	global gradwnd, HIPath, ldr_hWnd
-	static oldw, oldh
-	;global gradwnd
-	p:= wingetpos(ldr_hWnd)
-	s:= wingetpos(hsci)	; winSet,Region,% "1-0 W" p.w " H" p.h " R" (p.w+ p.h) *.05 "-" (p.w+ p.h) *.05 ,ahk_id %gradwnd%
-	if(p.w=oldw && p.h=oldh)
-		return,
-	oldw:= w:=p.w-48, oldh:= h:=p.h-302
-	;win_move(htab,"", 0,w,	p.h-250,"") 	;guiControl,move, HIPath, w%W% h%H%	;winSet,Region,% "1-1 W" p.w " H" p.h " R20-20",ahk_id %HIPath%
-	if g_dlgframe {
-		gradupdate(p.w-19,h-8)
-	} else,gradupdate(w-3,h-8)
-}
 
 _Lex(){
 	 return,
@@ -1113,11 +1079,25 @@ Win2DTopOpaque(Child="",DX="",DY="") { ;SWP_NOACTIVATE|SWP_NOZORDER
 	DTopDocked:= True
 }
 
-;"TCS_RIGHTJUSTIFY,0x0,TCS_SINGLELINE,0x0,TCS_EX_FLATSEPARATORS,0x1,TCS_SCROLLOPPOSITE,0x1,TCS_RIGHT,0x2,TCS_BOTTOM,0x2,TCS_MULTISELECT,0x4,TCS_FLATBUTTONS,0x8,TCS_FORCEICONLEFT,0x10,TCS_FORCELABELLEFT,0x20,TCS_HOTTRACK,0x40,TCS_VERTICAL,0x80,TCS_BUTTONS,0x100,TCS_MULTILINE0x200,TCS_FIXEDWIDTH,0x400,TCS_RAGGEDRIGHT,0x800,TCS_FOCUSONBUTTONDOWN,0x1000,TCS_OWNERDRAWFIXED,0x2000,TCS_TOOLTIPS,0x4000,TCS_FOCUSNEVER,0x8000"
-
 IDropTargetOnDrop_LV(TargetObject,pDataObj,KeyState,X,Y,DropEffect) {
 	global SbarhWnd
 	Static CF:= {15: "CF_HDROP"} ; Standard clipboard formats
+	;-- DragDrop flags
+	,DRAGDROP_S_DROP  := 0x40100 ; 262400
+	,DRAGDROP_S_CANCEL:= 0x40101 ; 262401
+;-- DROPEFFECT flags
+	,DROPEFFECT_NONE:= 0 ;-- Drop target cannot accept the data.
+	,DROPEFFECT_COPY:= 1 ;-- Drop results in a copy. The original data is untouched by the drag source.
+	,DROPEFFECT_MOVE:= 2 ;-- Drag source should remove the data.
+	,DROPEFFECT_LINK:= 4 ;-- Drag source should create a link to the original data.
+;-- Key state values (grfKeyState parameter)
+	,MK_LBUTTON:= 0x01   ;-- The left mouse button is down.
+	,MK_RBUTTON:= 0x02   ;-- The right mouse button is down.
+	,MK_SHIFT  := 0x04   ;-- The SHIFT key is down.
+	,MK_CONTROL:= 0x08   ;-- The CTRL key is down.
+	,MK_MBUTTON:= 0x10   ;-- The middle mouse button is down.
+	,MK_ALT    := 0x20   ;-- The ALT key is down.
+;	MK_BUTTON:= ?    ;-- Not documented.
 	, TM:= {1:  "HGLOBAL"}	; TYMED enumeration
 	, CF_NATIVE:= A_IsUnicode ? 13 : 1 ; CF_UNICODETEXT  : CF_TEXT
 	, CF_PRIVATEFIRST:= 0x0200	;"Private" formats don't get GlobalFree()'d
@@ -1696,3 +1676,23 @@ Quit() {
 	loop,3
 		sleep,200
 }
+
+; WM_MOUSEMOVE(wParam,lParam,Msg,Hwnd) {
+	; Global ; Assume-global mode ;Static Init:= OnMessage(0x0200,"WM_MOUSEMOVE") ;,init2:=0,TME
+	; if(init2=0) {
+		; VarSetCapacity(TME,16,0)
+		; init2:=1
+		; NumPut(16,TME,0)
+		; NumPut(2,TME,4) ; TME_LEAVE
+		; NumPut(hColorPalette,TME,8)
+		; DllCall("User32.dll\TrackMouseEvent","UInt",&TME)
+	; } MouseGetPos,,,,MouseCtl
+	; GuiControlGet,ColorVal,,% MouseCtl
+; }
+
+; WM_MOUSELEAVE(wParam, lParam, Msg, Hwnd) {
+	; Global ; Assume-global mode
+	; Static Init:= OnMessage(0x02A3,"WM_MOUSELEAVE")
+; }
+
+;"TCS_RIGHTJUSTIFY,0x0,TCS_SINGLELINE,0x0,TCS_EX_FLATSEPARATORS,0x1,TCS_SCROLLOPPOSITE,0x1,TCS_RIGHT,0x2,TCS_BOTTOM,0x2,TCS_MULTISELECT,0x4,TCS_FLATBUTTONS,0x8,TCS_FORCEICONLEFT,0x10,TCS_FORCELABELLEFT,0x20,TCS_HOTTRACK,0x40,TCS_VERTICAL,0x80,TCS_BUTTONS,0x100,TCS_MULTILINE0x200,TCS_FIXEDWIDTH,0x400,TCS_RAGGEDRIGHT,0x800,TCS_FOCUSONBUTTONDOWN,0x1000,TCS_OWNERDRAWFIXED,0x2000,TCS_TOOLTIPS,0x4000,TCS_FOCUSNEVER,0x8000"
