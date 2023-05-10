@@ -1,6 +1,5 @@
-;ListLines,Off
 #NoEnv ; #IfTimeout,200 ;* DANGER * : Performance impact if set too low. *think about using this*.
-#NoTrayIcon
+#NoTrayIcon ;ListLines,Off
 #SingleInstance,Force
 r_pid:= DllCall("GetCurrentProcessId")
 if(pip3:= winexist("-AHK-P|p3- ahk_class AutoHotkeyGUI")) { ; Singleton
@@ -16,11 +15,10 @@ if(pip3:= winexist("-AHK-P|p3- ahk_class AutoHotkeyGUI")) { ; Singleton
 } else,menu,tray,icon
 SciLexer:= A_ScriptDir . (A_PtrSize==8? "\SciLexer64.dll" : "\SciLexer32.dll")
 if(!LoadSciLexer(SciLexer)) {
-	msgbox,0x10,%g_AppName% - Error
-	, % "Failed to load library """ . SciLexer . """.`n`n"
+	msgbox,0x10,%g_AppName% - Error, % "Failed to load library """ . SciLexer . """.`n`n"
 	ifmsgbox,yes
 	ExitApp,
-} Setworkingdir,% (aHkeXe:= splitpath(A_AhkPath)).dir 
+} Setworkingdir,% (aHkeXe:= splitpath(A_AhkPath)).dir
 #Include <IDropTarget2>
 #include <TAB>
 #Include <SCIaa>
@@ -70,13 +68,16 @@ gui,grad:new, +hwndgradwnd -dpiscale
 IconInit(), TabViewInit()
 Butts_init(), comboinit(), tickboxinit()
 ToolBarInit(), StatusBarInit()
+SLEEP 2000
 winset,ExStyle,+0x18,ahk_id %ldr_hWnd%
 gui,Cut0r:show,hide Center w%init_W% h%init_H%  ,% Titlemain ;-- Show it
 Win_Animate(ldr_hWnd,"slide hneg activate",900) ;gui,Cut0r:show,na ;show_upd8()
 Aero_BlurWindow(ldr_hWnd)
 (opMount2DTop? Win2DTopTrans(ldr_hWnd,(deskX:= (guipos:= wingetpos(ldr_hWnd)).x),(desky:= guipos.y)))
 IDT_LV2:= IDropTarget_Create(hTab,"_LV", 1) ; no format required - for testing.
+SLEEP,2000
 EditViewInit()
+
 win_move(evhWnd,700,"","","","") ;DllCall("SetWindowBand","ptr",hgui,"ptr",0,"uint",4)
 winget,uib,List,ahk_pid %rPiD% ;ahk_class #32770
 	loop,% uib {
@@ -87,18 +88,15 @@ winget,uib,List,ahk_pid %rPiD% ;ahk_class #32770
 			winset,Style,-0x10000000,ahk_id %h3270%
 }	}
 
-IDT_LV:= IDropTarget_Create(hTab, "", -1) ; no format required - only for testing purposes
+PaletteInit()
 
-paletteinit()
 fileRead,ScriptRaw,% ScriptRaw
-SeTxT(ScriptRaw)
-sleep,20
-PaintLexForce:= True
-settimer,PaintLexForceoff,-900
-settimer,_Lex,-10
+
 win_move(gradwnd,0,0,a_screenwidth,a_screenheight)
+sleep,200
 RE2:= DllCall("SetParent","uint",gradwnd,"uint",ldr_hWnd)
-sleep,100
+sleep,200
+ 
 win_move(gradwnd,13,42,init_w+20,init_H)
 winset,transparent,120,ahk_id %gradwnd%
 winset,transparent,5,ahk_id %hipath%
@@ -109,44 +107,26 @@ winset,redraw,,aHk_id %gradwnd%
 settimer,onMsgz,-1000
 wm_allow()
 settimer,_Lex,-3000
-sleep,40
-gradinit()
-
-gradupdate(sciinit_w-22,init_h-302)
+SLEEP 3000
+gradinit(), GradUpdate(sciinit_w-22,init_h-302)
 tbrepos()
-settimer,onminit,-5008
+IDT_LV:= IDropTarget_Create(hTab, "", -1)
+settimer,OnMInit,-5008
+EnterSizeMove(), HANDLES_ALLCTL:= RedRawButts()
+SeTxT(ScriptRaw)
+PaintLexForce:= True
+settimer,PaintLexForceOff,-5000
+settimer,_Lex,-1
 return,
 
-onminit:
+OnMInit:
 OnMessage(0x0003,"wm_move")
 return,
 
-; #h::
-; h:= init_H -300, w:= init_w -20l
-; winset,redraw,,ahk_id %gradwnd%
-; return,
-
- #h::
-msgbox
-tt("adssdsadasdsdasda")
-redrawbutts()
+#h::
+h:= init_H -300, w:= init_w -20l
+winset,redraw,,ahk_id %gradwnd%
 return,
-
-TEST() {
- 
-	global gradwnd, HIPath, ldr_hWnd
-	static oldw, oldh
-	;global gradwnd
-	p:= wingetpos(ldr_hWnd)
-	s:= wingetpos(hsci)	; winSet,Region,% "1-0 W" p.w " H" p.h " R" (p.w+ p.h) *.05 "-" (p.w+ p.h) *.05 ,ahk_id %gradwnd%
-	if(p.w=oldw && p.h=oldh)
-		return,
-	oldw:= w:=p.w-48, oldh:= h:=p.h-302
-	;win_move(htab,"", 0,w,	p.h-250,"") 	;guiControl,move, HIPath, w%W% h%H%	;winSet,Region,% "1-1 W" p.w " H" p.h " R20-20",ahk_id %HIPath%
-	if g_dlgframe {
-		gradupdate(p.w-19,h-8)
-	} else,gradupdate(w-3,h-8)
-}
 
 #y::
 RE2:= DllCall("SetParent","uint",gradwnd,"uint",ldr_hwnd)
@@ -178,7 +158,7 @@ dllFile:= 	FileExist("C:\Program Files\Autohotkey\Lib\AutoHotkey.dll")
 rThread:= InjectAhkDll(ppidd,dllFile,"") ;rThread.Exec(code)
 return,
 
-gradupdate(w,h) {
+GradUpdate(w,h) {
 	global
 	pathEllipse:= new OGdip.Path()
 	pathEllipse.AddEllipse(0,0,w,h)
@@ -198,8 +178,8 @@ gradupdate(w,h) {
 	bmpIPath.SetToControl(hipath)
 	bmpIPath.SetToControl(thWnd)
 	winSet,Region,1-0 w%w% h%h% R20-20,ahk_id %hipath%
-	if g_dlgframe
-		win_move(gradwnd,sciinit_x,sciinit_y,w,h,1)
+	if(g_dlgframe)
+		win_move(gradwnd,sciinit_x,sciinit_y,w-2,h,1)
 	else,win_move(gradwnd,sciinit_x+15,sciinit_y,w,h,1)
 	winSet,Region,1-0 w%w% h%h% R20-20,ahk_id %gradwnd%
 	return,
@@ -210,8 +190,7 @@ if(Palactive)
 	return,
 else,if(initpal) {
 	LPos:="", LPos:= wingetPos(ldr_hWnd) ;gui,APCBackMain:Show,% " x" (LPos.x+LPos.W+5) " y" (LPos.y+(78)),Palette
-	LPos:= wingetPos(ldr_hWnd)	;win_move(hpal,LPos.x+LPos.W+5,LPos.y+(78),"","","")
-	Palactive:= True
+	LPos:= wingetPos(ldr_hWnd), Palactive:= True	;win_move(hpal,LPos.x+LPos.W+5,LPos.y+(78),"","","")
 	win_move(hpal,LPos.x+LPos.W+5,LPos.y+(78),"","","")
 	Win_Animate(hpal,"activate slide hpos", 210)
 	if(!opAlwaysOnTop)
@@ -281,7 +260,6 @@ if(!(%a_thislabel%:=!%a_thislabel%)) {
 	Guicontrol,,% a_thislabel,1
 } else,Guicontrol,,% a_thislabel,0
 return,
-
 ;---=--=-==\---=--=-==\---=--=-==\---=--=-==\---=--=-==\---=--=-==\---=--=-==\---=--=-==\---=--=-==\---=--=-==\==-
 
 pip3Exec:
@@ -307,14 +285,14 @@ EnterSizeMove(wParam="") {
 	if( r_Wpos.w ) {
 		r_Wpos.w < 1118? r_Wpos.w:= 1018 : r_Wpos.w:= r_Wpos.w -14
 		r_Wpos.h < 586? r_Wpos.h:= 586  : r_Wpos.h:= r_Wpos.h -49
-		if g_dlgframe
-			guiControl,Move,% hTab,% "x3 y" 0 " w" r_Wpos.w-2 " h" r_Wpos.h-240
-		else,guiControl,Move,% hTab,% "x18 y" 0 " w" r_Wpos.w-35 " h" r_Wpos.h-240
+		if(g_dlgframe)
+			guiControl,Move,% hTab,% "x3 y" 0 " w" r_Wpos.w-4 " h" r_Wpos.h-160
+		else,guiControl,Move,% hTab,% "x18 y" 0 " w" r_Wpos.w-35 " h" r_Wpos.h-123
 		settimer,TBRePos,-1
 		loop,5
-			GuiControl,move,% (run%a_index%).hWnd,% "y" _:=(g_dlgframe? r_Wpos.h-50-SYSGUI_TBbUTTSZ:h-71-SYSGUI_TBbUTTSZ)
+			GuiControl,move,% (run%a_index%).hWnd,% "y" _:=(g_dlgframe? r_Wpos.h-45-SYSGUI_TBbUTTSZ:h-120-SYSGUI_TBbUTTSZ)
 		loop,8
-			win_move(b_%a_index%hWnd,"",r_Wpos._:=(g_dlgframe? r_Wpos.h-70-SYSGUI_TBbUTTSZ:h-110-SYSGUI_TBbUTTSZ),"","")
+			win_move(b_%a_index%hWnd,"",r_Wpos._:=(g_dlgframe? r_Wpos.h-80-SYSGUI_TBbUTTSZ:h-155-SYSGUI_TBbUTTSZ),"","")
 		offset:= 18
 		loop,parse,% "110,110,100,103",`,
 			offset+=a_loopfield +18, win_move(drop%a_index%,r_Wpos.w-offset,"","","")
@@ -324,38 +302,19 @@ EnterSizeMove(wParam="") {
 	} settimer,test,-1
 }
 
-redrawbutts() {
-	global
-	loop,5
-		winset,redraw,,% "ahk_id " (run%a_index%).hWnd
-		GuiControl,move,% (run%a_index%).hWnd,% "y" _:=(g_dlgframe? r_Wpos.h-30-SYSGUI_TBbUTTSZ:h-71-SYSGUI_TBbUTTSZ)
-	loop,8
-		winset,redraw,,% "ahk_id " b_%a_index%hWnd
-	loop,4
-		winset,redraw,,% "ahk_id " drop%a_index%
-	loop,2
-		winset,redraw,,% "ahk_id " hchk%a_index%
-	}
-}
-
 TBRePos() {
 	global
-	r_Wpos:=wingetpos(ldr_hWnd)
-	win_move(hpal,r_Wpos.x+r_Wpos.W+12,r_Wpos.y+(78),"","","")
+	r_Wpos:=wingetpos(ldr_hWnd), win_move(hpal,r_Wpos.x+r_Wpos.W+12,r_Wpos.y+(78),"","","")
 	wingetPos,,,W,H,ahk_id %ldr_hWnd% ;SWP_NOACTIVATE | SWP_NOZORDER
 	SendMessage,0x421,,,,ahk_id %hTB% ;\TB_AUTOSIZE ;winset,Redraw,,ahk_id %hTab%
 	(DTopDocked? win_move(htb,1,h-96,"","","") : win_move(htb,9,(g_dlgframe? h-107:h-145),"",70,""))
-	; winset,style,-0x100,ahk_id %hTB%
-	; winset,exstyle,+0x2000000,ahk_id %hTB%
-	ypos:= r_Wpos.h -200 
+	ypos:= r_Wpos.h -200 ; winset,style,-0x100,ahk_id %hTB% ; winset,exstyle,+0x2000000,ahk_id %hTB%
 		GuiControl,,+e0x -0x100,% hTB,
-	if(g_dlgframe)
-		win_move(hsci,2,43,r_Wpos.w-21,r_Wpos.h -200 ,"")
-	else,win_move(hsci,6,43,r_Wpos.w-40,r_Wpos.h -220 ,"")
+	g_dlgframe? win_move(hsci,2,43,r_Wpos.w-21,r_Wpos.h -255 ,""):(win_move(hsci,6,43,r_Wpos.w-60,r_Wpos.h -255 ,""))
 	SendMessage,0x454,0,0x90,,ahk_id %hTB% ;only dblbuff;
-	redraw()
 	return,0
-}
+}	oldw:= w:=p.w-48, oldh:= h:=p.h-255	;win_move(htab,"", 0,w,	p.h-250,"") 	;guiControl,move, HIPath, w%W% h%H%	;winSet,Region,% "1-1 W" p.w " H" p.h " R20-20",ahk_id %HIPath%
+
 
 TabUpdate() {
 	global
@@ -419,7 +378,7 @@ Toolbar_SetButtSize(hCtrl,W,H="") {
 	SendMessage,0x421,,,,ahk_id %hCtrl%	;autosize
 }
 
-WM_COMMAND(wParam,lParam,uMsg,hWnd){
+WM_COMMAND(wParam,lParam,uMsg,hWnd) {
 	global ButtPressNum
 	DetectHiddenWindows,On
 	WinGetClass, vWinClass, % "ahk_id " lParam
@@ -525,7 +484,7 @@ Gradinit() {
 	winset,transparent,18,ahk_id %gradwnd%
 	gui,grad:show, w%init_w% h%init_h% center
 	winSet,Region,1-0 w%init_w% h%init_h% R20-20,ahk_id %gradwnd%
-	gradupdate(init_w,init_h)
+	GradUpdate(init_w,init_h)
 }
 
 TabViewinit() {
@@ -626,24 +585,31 @@ Butts_init() {
 					, "btn"  : "Ansi-x86"})
 		} GuiControl,text,% (run%a_index%).hWnd,% (run%a_index%).btn ;(run%a_index%).hWnd "`n" (run%a_index%).btn
 	} bY-=18
-		gui,Cut0r:Add,CheckBox,% "hwndhcheckdlg Gdlgtogl vg_dlgframe x845 y580" ,% "&dlgframe"
+		gui,Cut0r:Add,CheckBox,% "+hwndhcheckdlg Gdlgtogl vg_dlgframe x845 y580" ,% "&dlgframe"
 
 }
- 
+
 dlgtogl:
 if(g_dlgframe:=!g_dlgframe) {
 	P:=wingetpos(ldr_hwnd)
 	winset,style,-0x400000,ahk_id %ldr_hWnd%
 	winset,style,+0x40000,ahk_id %ldr_hWnd%
 } else winset,style,+0x400000,ahk_id %ldr_hWnd%
+sleep(100)
 redraw()
 return,
 
-~#f:: 
-if(bbounce:=!bbounce)
+~#f::
+loop,parse,HANDLES_ALLCTL,`,
+	controls[ a_index ]:= A_loopfield
+	, controlsmaxi:= a_index
+	msgbox % controlsmaxi
+if(bbounce:=!bbounce) {
+;	settimer,bbb,1
 	settimer,bb,1
-else {
+} else {
 	settimer,bb,off
+	settimer,bbb,off
 	sleep,100
 	SendMessage,0x448,-1,0,,ahk_id %htb%
 } return,
@@ -651,28 +617,36 @@ else {
 bb:
 buttbounce(htb,17,250)
 return,
+		bbb:
+		buttbounce2()
 
-; ~#f:: 
-; bb:=func("buttbounce").bind(htb,17,250)
-; if (bbounce:=!bbounce)
-; settimer,% bb,1 
-; else bb:=""
-; settimer,ButtBounce,off
-; return,
-
+		return,
+buttbounce2() {
+	butts_up:
+	loop,% controlsmaxi {
+		SendMessage,0xF3,1,0,,% "ahk_id " controls[a_index] ;BM_SETSTATE
+		sleep,45
+	} 		;return,
+	butts_dn:
+	loop,% controlsmaxi {
+		SendMessage,0xF3,0,0,,% "ahk_id " controls[controlsmaxi+1-a_index] ;BM_SETSTATE 
+		sleep,45
+	}		;return,
+}
+	
 ButtBounce(tbhandle="",butts="",hilt_ms=199) {
 	global
-	loop,1 {
+	;loop,1 {
 		loop,% butts {
-			(!bbounce?return())
+			(!bbounce? return())
 			SendMessage,0x448,a_index-1,0,,ahk_id %tbhandle% ;TB_SETIMAGELIST:=0x430 ;TB_ADDBUTTONSA:= 0x414 TB_SETHOTITEM-0x448
 			sleep,% hilt_ms
 		} loop,% butts {
-			(!bbounce?return())
+			(!bbounce? return())
 			SendMessage,0x448,butts-a_index,0,,ahk_id %tbhandle% ;TB_SETIMAGELIST:=0x430 ;TB_ADDBUTTONSA:= 0x414
 			sleep,% hilt_ms
 		}
-	}
+	;} 
 }
 
 ToolbarInit() {
@@ -737,40 +711,8 @@ IconInit() {
 	return,
 }
 
-ButtHandl4(butt) {
-	global
-	switch,butt {
-		case "1":
-		case "2":
-		case "3":
-		case "4":
-		case "5":
-		case "6":
-		case "7":
-		case "8":
-		case "9":
-		case "10":
-		case "11":
-		case "12":
-		case "13":
-		case "14":
-		case "15":
-		case "16":
-		case "17":
-		if(!Palactive) {
-			settimer,Palactivate,-1
-			return,
-		} else,if(Palactive) {
-			settimer,palahide,-1
-			return,
-		}
-		case "18":
-		case "19":
-	}
-}
-
-Show_Upd8() { ;global ;other_updating:
-	return,TabUpdate(),TBRePos()
+Show_Upd8() {
+	return, TabUpdate(), TBRePos()
 }
 
 EditViewInit() {
@@ -805,6 +747,7 @@ OnMessage(2170,"cs") ;OnMessage(0x231, "wm_movest")
 OnMessage(0x0232,"wm_moveend")
 OnMessage(0x0111,"WM_COMMAND")
 OnMessage(0x0231,"EnterSizeMove")
+OnMessage(0x200,"OnWM_MOUSEMOVE")
 OnMessage(0x0005,"EnterSizeMove")
 OnMessage(0x0006,"wm_activate")
 OnMessage(0x015,"WM_DPICHANGED") ;WM_SYSCOLORCHANGE seems to be  cause of relog gfx issue banner2
@@ -852,7 +795,7 @@ WM_KEYUP(wParam,lParam,msg="",hwnd="") {
 	return,
 }	}
 
-wm_activate(){
+wm_activate() {
 	gui,APCBackMain:+lastfound +alwaysontop
 	if(!opAlwaysOnTop)
 	gui,APCBackMain:-alwaysontop
@@ -909,17 +852,16 @@ WM_lrBUTTONDOWN(wParam,lParam,mDC) {
 WM_lrBUTTONup(wParam="",lParam="") { ;Toggle Maximise & fill;
 	global STrigga, LbD:= ""
 	if(!STrigga) {
-		settimer,GuiMenu,-1
+		settimer,MenuGuiShow,-1
 		return,
 }	}
 
-wm_moveend() {
-	msgbox
+WM_MOVEEND() {
 	global palmovtrig, Palactive ;if(!Palactive)winset,transparent,240,ahk_id %hpal%
 	return,	redraw(), palmovtrig:= False
 }
 
-wm_move() {
+WM_MOVE(wParam="",lParam="",msg="",hWnd="") {
 	global
 	critical
 	try, {
@@ -934,15 +876,69 @@ wm_move() {
 	} ;settimer, wm_moveend,-100 ;gui,APCBackMain:Show,% "hide x" (LPos.x+LPos.W) " y" (LPos.y+(78)),Palette
 }
 
-redraw() { ;return
-	winset,redraw,,Ahk_id %ldr_hWnd%
-		winset,redraw,,Ahk_id %SbarhWnd%
-		winset,redraw,,Ahk_id %htb%
-	winset,redraw,,Ahk_id %htab%
-	winset,redraw,,Ahk_id %hsci% ;sci.GrabFocus()
-	redrawbutts()
+oNWM_MOUSEMOVE(wParam="",lParam="",msg="",hWnd2="") {
+	global CurChanged,HANDLES_ALLCTL
+hWnd3:= Format("{:#x}",hWnd2)
+;msgbox % hWnd3 "`n" HANDLES_ALLCTL
+	switch,hWnd3 {
+		case,htb : (!CurChanged? (SetSystemCursor("C:\Script\AHK\GUi\hand84-nq8.cur",84,84), CurChanged:= true))
+		default :  instr(HANDLES_ALLCTL,hWnd3)? (!CurChanged? (SetSystemCursor("C:\Script\AHK\GUi\hand84-nq8.cur",84,84), CurChanged:= true)) : (CurChanged? (DllCall("SystemParametersInfo","uInt",0x57,"uInt",0,"uInt",0,"uInt",0), CurChanged:= false))
+	}
 }
 
+gCursor(cursor="C:\Script\AHK\GUi\hand84-nq8.cur") {
+ return,CurSet(cursor,84,84)
+}
+
+
+RedRaw() { ;return
+ 	static init, HandlesAll
+	if(!init) {
+		loop,parse,% "ldr_hWnd,SbarhWnd,htb,htab,hsci",`,
+			HandlesAll.= %a_loopfield% ","
+		loop,8
+			HandlesAll.= b_%a_index%hWnd ","
+		loop,5
+			HandlesAll.= (run%a_index%).hWnd ","
+		loop,4
+			HandlesAll.= drop%a_index% ","
+		loop,2
+			HandlesAll.=  hchk%a_index% ","
+		init:=True ;sci.GrabFocus()
+	}	loop,parse,HandlesAll,`,
+			winset,redraw,,ahk_id %a_loopfield%
+	return,HandlesAll . hcheckdlg
+}
+
+RedRawButts() {
+	static init, Handles_All_Butts
+	if(!init) {
+		loop,8
+			Handles_All_Butts.= b_%a_index%hWnd ","
+		loop,5
+			Handles_All_Butts.= (run%a_index%).hWnd ","
+		loop,4
+			Handles_All_Butts.= drop%a_index% ","
+		loop,2
+			Handles_All_Butts.= hchk%a_index% ","
+		init:= True
+	}	loop,parse,handles_all_butts,`,
+			winset,redraw,,ahk_id %a_loopfield%
+	return,Handles_All_Butts.= hcheckdlg
+}
+
+TEST() {
+	global gradwnd, HIPath, ldr_hWnd
+	static oldw, oldh	;global gradwnd
+	p:= wingetpos(ldr_hWnd)
+	s:= wingetpos(hsci)	; winSet,Region,% "1-0 W" p.w " H" p.h " R" (p.w+ p.h) *.05 "-" (p.w+ p.h) *.05 ,ahk_id %gradwnd%
+	if(p.w=oldw && p.h=oldh)
+		return,
+	oldw:= w:=p.w-48, oldh:= h:=p.h-241	;win_move(htab,"", 0,w,	p.h-250,"") 	;guiControl,move, HIPath, w%W% h%H%	;winSet,Region,% "1-1 W" p.w " H" p.h " R20-20",ahk_id %HIPath%
+	if(g_dlgframe) {
+		GradUpdate(p.w-19,h-8)
+	} else,GradUpdate(w-3,h-32)
+}
 
 _Lex(){
 	 return,
@@ -954,7 +950,6 @@ _Lex(){
 	; }
 	; return,searchrep(Textnew:= sci_getall(hw,p1d))
 }
-
 
 Glass(thisColor=0x11402200,thisAlpha="",hWnd="") {
 	Static init, accent_state:= 4
@@ -996,7 +991,7 @@ Pipe(bLabel) {
 		if(aca:= winexist(ad:= "\\.\pipe\" .  pipe_nAME .  A_index))
 			msgbox,% result "`n" pipe_name "`n" aca " taken"
 		else,break,
-	msgbox,% pipe_nAME .= A_index
+	pipe_nAME .= A_index
 	GI:= (r_ . " " . CHR(34) . "\\.\pipe\" . pipe_name .  CHR(34))
 	(%pip2%):= CreateNamedPipe(pipe_name,2) ;"PIPE-Name" ; AHK calls GetFileAttributes();
 	, (%pipe%):= CreateNamedPipe(pipe_name,2) ;<=>=> So,Closepipe,& Create 2nd pipe.;
@@ -1047,8 +1042,7 @@ Win2DTopTrans(Child="",DX="",DY="") {
 			ControlGet,h3270,hWnd,,#327701,% "ahk_id " uib%a_index%
 			winset,ExStyle,+0x20,ahk_id %h3270%
 			winset,Style,-0x10000000,ahk_id %h3270%
-	}	}
-	win_move(ldr_hWnd,acs.x+2,acs.y-2,acs.w-1,acs.h+1)
+	}	}	win_move(ldr_hWnd,acs.x+2,acs.y-2,acs.w-1,acs.h+1)
 	, d2pos:= WinGetPos(ldr_hWnd)	;guiControl,Move,TBhWnd,% "x1 y2"
 	, show_upd8() ; ToolbarInit() ;guiControl,Move,Cut0r:,TBhWnd,y500 ;sleep,300
 	, bcnt:= wingetpos(TBhWnd), ssleep(20)
@@ -1080,10 +1074,8 @@ Win2DTopOpaque(Child="",DX="",DY="") { ;SWP_NOACTIVATE|SWP_NOZORDER
 }
 
 IDropTargetOnDrop_LV(TargetObject,pDataObj,KeyState,X,Y,DropEffect) {
-	global SbarhWnd
-	Static CF:= {15: "CF_HDROP"} ; Standard clipboard formats
-	;-- DragDrop flags
-	,DRAGDROP_S_DROP  := 0x40100 ; 262400
+	global SbarhWnd	;-- DragDrop flags
+	Static DRAGDROP_S_DROP:= 0x40100 ; 262400
 	,DRAGDROP_S_CANCEL:= 0x40101 ; 262401
 ;-- DROPEFFECT flags
 	,DROPEFFECT_NONE:= 0 ;-- Drop target cannot accept the data.
@@ -1098,6 +1090,7 @@ IDropTargetOnDrop_LV(TargetObject,pDataObj,KeyState,X,Y,DropEffect) {
 	,MK_MBUTTON:= 0x10   ;-- The middle mouse button is down.
 	,MK_ALT    := 0x20   ;-- The ALT key is down.
 ;	MK_BUTTON:= ?    ;-- Not documented.
+	Static CF:= {15: "CF_HDROP"} ; Standard clipboard formats
 	, TM:= {1:  "HGLOBAL"}	; TYMED enumeration
 	, CF_NATIVE:= A_IsUnicode ? 13 : 1 ; CF_UNICODETEXT  : CF_TEXT
 	, CF_PRIVATEFIRST:= 0x0200	;"Private" formats don't get GlobalFree()'d
@@ -1113,9 +1106,8 @@ IDropTargetOnDrop_LV(TargetObject,pDataObj,KeyState,X,Y,DropEffect) {
 			If(Format >= CF_PRIVATEFIRST) && (Format <= CF_PRIVATELAST)
 				Name:= "*PRIVATE" ; Example for getting values out of the returned binary Data
 			IDataObject_GetData(pDataObj, FORMATETC, Size, Data)
-			If Format In 1,15
-			{
-				If IDataObject_GetDroppedFiles(pDataObj,Files)
+			If(instr("1,15",Format))	{
+				If(IDataObject_GetDroppedFiles(pDataObj,Files))
 					For,Each,File In Files
 					{
 						if(f:= splitpath(file)).ext in ahk,txt
@@ -1199,7 +1191,7 @@ Time4mat(time="",pattern="") {
 	return,out
 }
 
-SetWindowPos(hWnd,x,y,w,h,hWndInsertAfter:= 0,uFlags:= 0x40) { ; SWP_SHOWWINDOW
+SetWindowPos(hWnd,x,y,w,h,hWndInsertAfter:= 0,uFlags:= 0x40) { ;SWP_SHOWWINDOW
 	return,DllCall("SetWindowPos","Ptr",hWnd,"Ptr",hWndInsertAfter,"Int"
 	,x,"Int",y,"Int",w,"Int",h,"UInt",uFlags)
 }
@@ -1207,6 +1199,10 @@ SetWindowPos(hWnd,x,y,w,h,hWndInsertAfter:= 0,uFlags:= 0x40) { ; SWP_SHOWWINDOW
 EndTask(hWnd,fShutDown,fForce) {
 	return,DllCall("EndTask","int",hWnd,"int",fShutDown,"int",fForce)
 }
+
+PaintLexForceoff:
+PaintLexForce:= False
+return,
 
 setlexerStyle() {
 sci.SetMarginWidthN(0,32) ; Show line numbers
@@ -1249,7 +1245,7 @@ sci.SETselectionback(Style_DEFAULT,0x00aaff)
 sci.SETSELBACK(Style_DEFAULT,0x400580)
 sci.SetLexer(Style_DEFAULT)
 sci.StyleClearAll()
-sci.Notify := "SCI_NOTIFY"
+; sci.Notify := "SCI_NOTIFY"
 ; Command list
 Dir=
 (
@@ -1263,12 +1259,12 @@ Com=
 (
 autotrim blockinput clipwait control controlclick controlfocus controlget controlgetfocus
 controlgetpos controlgettext controlmove controlsend controlsendraw controlsettext coordmode
-critical detecthiddentext detecthiddenwindows drive driveget drivespacefree edit endrepeat envadd
+critical detecthiddentext detecthiddenwindows drive driveget drivespacefree edit envadd
 envdiv envget envmult envset envsub envupdate fileappend filecopy filecopydir filecreatedir
 filecreateshortcut filedelete filegetattrib filegetshortcut filegetsize filegettime filegetversion
 fileinstall filemove filemovedir fileread filereadline filerecycle filerecycleempty fileremovedir
 fileselectfile fileselectfolder filesetattrib filesettime formattime getkeystate groupactivate
-groupadd groupclose groupdeactivate gui guicontrol guicontrolget hideautoitwin hotkey if ifequal
+groupadd groupclose groupdeactivate gui guicontrol guicontrolget hotkey if ifequal
 ifexist ifgreater ifgreaterorequal ifinstring ifless iflessorequal ifmsgbox ifnotequal ifnotexist
 ifnotinstring ifwinactive ifwinexist ifwinnotactive ifwinnotexist imagesearch inidelete iniread
 iniwrite input inputbox keyhistory keywait listhotkeys listlines listvars menu mouseclick
@@ -1434,10 +1430,6 @@ SeTxT(byref txt,byref obj="sci") {
 	return,
 }
 
-PaintLexForceoff:
-PaintLexForce:= False
-return,
-
 SearchRep(byref txt="",byref obj="",byref dicX="") {
 	global ;(%obj%),textnew PaintLexForce
 	static textnew,txtlengthold,txtlength
@@ -1477,14 +1469,14 @@ SearchRep(byref txt="",byref obj="",byref dicX="") {
 	critical
 	TickSS:= a_tickcount
 	while(FoundPos:= regexmatch(txt,Needle,Match,pos)) {
-		loop,12  ;if(matchval(Pos,Len,a_index,colz[ a_index ])) { ;if(matchval(FoundPos,Match.Len(),a_index,Dix[ a_index ].Colour,Dix[ a_index ].Font, Dix[ a_index ].Size, Dix[ a_index ].Italic, Dix[ a_index ].Bold, Dix[ a_index ].Underline)) {
+		loop,12  ;if(MatchVal(Pos,Len,a_index,colz[ a_index ])) { ;if(MatchVal(FoundPos,Match.Len(),a_index,Dix[ a_index ].Colour,Dix[ a_index ].Font, Dix[ a_index ].Size, Dix[ a_index ].Italic, Dix[ a_index ].Bold, Dix[ a_index ].Underline)) {
 			if(Match.Value(a_index))
-				matchval(FoundPos,Match.Len(),a_index,dix[ a_index ].Colour,Match) ;continue
+				MatchVal(FoundPos,Match.Len(),a_index,dix[ a_index ].Colour,Match) ;continue
 		Pos:= FoundPos +Match.Len()+1 ;continue
 	} tooltip,% a_tickcount -tickss " Ms" ;TimeScriptStart()
 }
 
-matchval(Pos="",Len="",IDNum="",Colour="",byref match="") {
+MatchVal(Pos="",Len="",IDNum="",Colour="",byref match="") {
 	static obj:="sci"
 	critical
 	(IDNum=16)? sci_style:= "Style_DEFAULT" : sci_style:= "SCE_AHKL_USERDEFINED" . IDNum
@@ -1516,8 +1508,8 @@ sci_getall(scihwnd="",scipid="") {
 	,scipid,"Ptr")),"Ptr",0,"UPtr",len+1,"UInt",0x1000,"UInt",4,"Ptr")
 	sendmessage,2182,len-1,Address,,ahk_id %scihwnd% ;SCI_GETTEXT:=2182;
 	if success:= DllCall("ReadProcessMemory","Ptr",hProc,"Ptr",Address,"Ptr",&ticket,"UPtr",len-1,"uint","","uint")
-	;msgbox,% byte2string("ticket") " " len " " _:= byte2string("ticket")
-	return,byte2string("ticket")
+	;msgbox,% Byte2Str("ticket") " " len " " _:= Byte2Str("ticket")
+	return,Byte2Str("ticket")
 }
 
 custOverlay() {
@@ -1528,24 +1520,44 @@ custOverlay() {
 	return,byref hGui
 }
 
-byte2string(bytes_var_name="",CodePg="CP936") {
+Byte2Str(bytes_var_name="",CodePg="CP936") {
 	static cp:="CP936"
 	(CodePg!="CP936"? Cp:= CodePg)
 	return,ret:= strget(&(%bytes_var_name%),len-1,Cp)
 }
 
-MenuPost(wMsgEnum) {
-	PostMessage,0x0111,% wMsgEnum,,,% A_ScriptName " - AutoHotkey"
+ButtHandl4(butt) {
+	global
+	switch,butt {
+		case "1":
+		case "2":
+		case "3":
+		case "4":
+		case "5":
+		case "6":
+		case "7":
+		case "8":
+		case "9":
+		case "10":
+		case "11":
+		case "12":
+		case "13":
+		case "14":
+		case "15":
+		case "16":
+		case "17":
+		if(!Palactive) {
+			settimer,Palactivate,-1
+			return,
+		} else,if(Palactive) {
+			settimer,palahide,-1
+			return,
+		}
+		case "18":
+		case "19":
+	}
 }
 
-GuiMenu() {
-	menu,New,Add,Testmenu,Donothing
-	menu,New,Show
-}
-
-MenuTrayShow() {
-	Menu,Tray,Show
-}
 
 MenHandlr(isTarget="") {
 	global
@@ -1566,10 +1578,23 @@ MenHandlr(isTarget="") {
 		;default: settimer,%a_thismenuitem%,-10 : ())
 }	}
 
+MenuGuiShow() {
+	menu,New,Add,Testmenu,Donothing
+	menu,New,Show
+}
+
+MenuTrayShow() {
+	Menu,Tray,Show
+}
+
+MenuPost(wMsgEnum) {
+	PostMessage,0x0111,% wMsgEnum,,,% A_ScriptName " - AutoHotkey"
+}
+
 AHK_NOTIFYICON(byref wParam="",byref lParam="") {
 	switch,lParam {
-		; case 0x0204: return,timer("menutray",-20) ;WM_RBUTTONDN-0x0204l;
-		case 0x0204 : return,menutray() ;WM_RBUTTONDN-0x0204l;
+		; case 0x0204: return,timer("MenuTrayShow",-20) ;WM_RBUTTONDN-0x0204l;
+		case 0x0204 : return,MenuTrayShow() ;WM_RBUTTONDN-0x0204l;
 		case 0x0203 : _:="", wParam:=""
 			PostMessage,0x0111,65407,,,% A_ScriptName " - AutoHotkey"
 			Sleep(80),lParam:= (Sleep(11),tt("Loading...","tray",1))
@@ -1578,11 +1603,7 @@ AHK_NOTIFYICON(byref wParam="",byref lParam="") {
 	return,
 }	} ; WM_DoubleClick	;	ID_VIEW_VARIABLES:= 65407
 
-MenuTray(){
-	Menu,Tray,Show
-}
-
-menuz:
+Menuz:
 menu,Tray,NoStandard
 menu,Tray,Add,% (an:= splitpath(A_scriptFullPath)).fn,% "do_nothing"
 menu,Tray,icon,% an.fn,% "D:\Documents\My Pictures\- Icons\256\Alien (11).ico",,32
@@ -1623,12 +1644,12 @@ return,
 
 varz:
 global opAlwaysOnTop, topmost, opTaskbarItem, tbitem, TBeXtyle, ico_tick, ico_cross, hchk1, hchk2
-, deskY, Scriptnew, scriptraw, textnew, ayboi, TBhWnd, DTopDocked, aHkeXe, fil3:= a_scriptname
-, evhWnd, ldr_hWnd, htb, TabSelected, Pipes, vcount, icon_array, ppidd, SYSGUI_TBbUTTSZ, g_dlgframe
-, PtrP,Ptr, colour1:= 0xEE0000, keynames:= "Lctrl,", BandIncr:= 0, match, r_pid, initpal
+, deskY, Scriptnew, scriptraw, textnew, ayboi, TBhWnd, DTopDocked, aHkeXe, fil3:= a_scriptname, controlsmaxi
+, evhWnd, ldr_hWnd, htb, TabSelected, Pipes, vcount, icon_array, ppidd, SYSGUI_TBbUTTSZ, g_dlgframe, hcheckdlg
+, PtrP,Ptr, colour1:= 0xEE0000, keynames:= "Lctrl,", BandIncr:= 0, match, r_pid, initpal, ChangeToIcon, CurChanged
 , ico_tick:="C:\Icon\256\ticAMIGA.ico", ico_cross:="C:\Icon\256\Oxygeclose.ico"
 , _:= "C:\Program Files\Autohotkey\AutoHotkey", File, Titlemain, h3270, deskX, PaintLexForce, bbounce, bb
-, EDIT:= 65304, open:= 65407, Suspend:= 65305, PAUSE:= 65306, exit:= 6530, gradwnd, hgui
+, EDIT:= 65304, open:= 65407, Suspend:= 65305, PAUSE:= 65306, exit:= 6530, gradwnd, hgui, HANDLES_ALLCTL, controls:=[]
 , TBeXtyle:= 0x40110, InitH, IcoDir, ldr_hWnd, char_size, r_Wpos, colz, Palactive, palmovtrig, hil2, hil3, hil4
 loop,8
 	global (b_%a_index%hWnd):= ""
@@ -1664,9 +1685,9 @@ r3load() {
 
 Quit() {
 	global
-	OGdip.shutdown()
-	IDT_LV.RevokeDragDrop(), IDT_LV2.RevokeDragDrop()
+	OGdip.shutdown(), IDT_LV.RevokeDragDrop(), IDT_LV2.RevokeDragDrop()
 	, IDT_LV3.RevokeDragDrop(), IL_Destroy(hIL2), IL_Destroy(hIL3)
+	CurChanged? (DllCall("SystemParametersInfo","uInt",0x57,"uInt",0,"uInt",0,"uInt",0), CurChanged:= false)
 	for,index in Pipes
 	{
 		nm:= (Pipes[index].name), pid:= (Pipes[index].hWnd)
@@ -1693,6 +1714,20 @@ Quit() {
 ; WM_MOUSELEAVE(wParam, lParam, Msg, Hwnd) {
 	; Global ; Assume-global mode
 	; Static Init:= OnMessage(0x02A3,"WM_MOUSELEAVE")
+; }
+
+; ~#f::
+; bb:=func("buttbounce").bind(htb,17,250)
+; if (bbounce:=!bbounce)
+; settimer,% bb,1
+; else bb:=""
+; settimer,ButtBounce,off
+; return,
+
+; redraw() { ;return
+	; winset,redraw,,Ahk_id %ldr_hWnd%
+	; winset,redraw,,Ahk_id %htab%
+	; winset,redraw,,Ahk_id %hsci% ;sci.GrabFocus() 	;settimer test,-70
 ; }
 
 ;"TCS_RIGHTJUSTIFY,0x0,TCS_SINGLELINE,0x0,TCS_EX_FLATSEPARATORS,0x1,TCS_SCROLLOPPOSITE,0x1,TCS_RIGHT,0x2,TCS_BOTTOM,0x2,TCS_MULTISELECT,0x4,TCS_FLATBUTTONS,0x8,TCS_FORCEICONLEFT,0x10,TCS_FORCELABELLEFT,0x20,TCS_HOTTRACK,0x40,TCS_VERTICAL,0x80,TCS_BUTTONS,0x100,TCS_MULTILINE0x200,TCS_FIXEDWIDTH,0x400,TCS_RAGGEDRIGHT,0x800,TCS_FOCUSONBUTTONDOWN,0x1000,TCS_OWNERDRAWFIXED,0x2000,TCS_TOOLTIPS,0x4000,TCS_FOCUSNEVER,0x8000"
