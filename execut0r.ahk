@@ -1,6 +1,9 @@
+;menu,tray,icon,C:\Icon\256\pp0hand.ico
 #NoEnv ; #IfTimeout,200 ;* DANGER * : Performance impact if set too low. *think about using this*.
 #NoTrayIcon ;ListLines,Off
 #SingleInstance,Force
+; #notrayicon
+; menu,tray,icon
 r_pid:= DllCall("GetCurrentProcessId")
 if(pip3:= winexist("-AHK-P|p3- ahk_class AutoHotkeyGUI")) { ; Singleton
 	winget,pid,pid,ahk_id %pip3%
@@ -12,7 +15,7 @@ if(pip3:= winexist("-AHK-P|p3- ahk_class AutoHotkeyGUI")) { ; Singleton
 		ifwinactive,ahk_id %pip3%
 			exitapp,
 	} exitapp,
-} else,menu,tray,icon
+} ;else,menu,tray,icon
 SciLexer:= A_ScriptDir . (A_PtrSize==8? "\SciLexer64.dll" : "\SciLexer32.dll")
 if(!LoadSciLexer(SciLexer)) {
 	msgbox,0x10,%g_AppName% - Error, % "Failed to load library """ . SciLexer . """.`n`n"
@@ -37,10 +40,6 @@ global bold, opAlwaysOnTop:= False ;,R_DPI:= A_ScreenDPI/96
 , rPiD := DllCall("GetCurrentProcessId")
 , init_w:=1050, init_H:=706
 , hsci,sciinit_x:=3,sciinit_y:=38,sciinit_w:=1064,sciinit_h:=r_Wpos.h -249
-OGdip.Startup()
-OnExit(ObjBindMethod(OGdip, "Shutdown"))
-OGdip.autoGraphics:= True
-try,menu,tray,icon,% "C:\Icon\24\Gterminal_24_32.ico"
 DetectHiddenWindows,On
 DetectHiddenText,	On
 SetTitleMatchMode,	2
@@ -52,6 +51,8 @@ coordmode,	Mouse,	Screen
 a_scriptstarttime:= time4mat()
 loop,parse,% "VarZ,MenuZ,INITARRAYS,Main", `,
 	 gosub,% A_Loopfield
+menu,tray,icon
+try,menu,tray,icon,% "HICON:*" ico_hbmp:= b64_2_hicon(b64i)
 return,
 
 Main:
@@ -72,12 +73,16 @@ ToolBarInit(), StatusBarInit()
 
 winset,ExStyle,+0x18,ahk_id %ldr_hWnd%
 gui,Cut0r:show,hide Center w%init_W% h%init_H%  ,% Titlemain ;-- Show it
+
 Win_Animate(ldr_hWnd,"slide hneg activate",900) ;gui,Cut0r:show,na ;show_upd8()
+winget,ui,list,ahk_pid %r_pid%
+loop,% ui
+	WindowhIconSet(ui%a_index%,ico_hbmp)
 Aero_BlurWindow(ldr_hWnd)
 (opMount2DTop? Win2DTopTrans(ldr_hWnd,(deskX:= (guipos:= wingetpos(ldr_hWnd)).x),(desky:= guipos.y)))
 
 PaletteInit(), EditViewInit()
-setlexerStyle()	;ControlGet,hsci,hWnd,,scintilla1,ahk_id %evhWnd%
+	gay2:=setlexerStyle()	;ControlGet,hsci,hWnd,,scintilla1,ahk_id %evhWnd%
 
 win_move(evhWnd,700,"","","","") ;DllCall("SetWindowBand","ptr",hgui,"ptr",0,"uint",4)
 winget,uib,List,ahk_pid %rPiD% ;ahk_class #32770
@@ -89,12 +94,11 @@ winget,uib,List,ahk_pid %rPiD% ;ahk_class #32770
 			winset,Style,-0x10000000,ahk_id %h3270%
 }	}
 
-
-fileRead,ScriptRaw,% ScriptRaw
+fileRead,ScriptRaw,% a_scriptfullpath
 SeTxT(ScriptRaw)
 PaintLexForce:= True
 settimer,PaintLexForceOff,-900
-settimer,_Lex,-10
+; settimer,_Lex,-10
 win_move(gradwnd,0,0,a_screenwidth,a_screenheight)
 sleep,200
 RE2:= DllCall("SetParent","uint",gradwnd,"uint",ldr_hWnd)
@@ -107,27 +111,45 @@ winset,style,+0x4d000000 -0x80000000,aHk_id %gradwnd%
 winset,style,+0x4d000000 -0x80000000,aHk_id %hipath%
 winset,exstyle,+0x28,aHk_id %gradwnd%
 winset,redraw,,aHk_id %gradwnd%
+ WindowhIconSet(ldr_hWnd,ico_hbmp)
 
-settimer,onMsgz,-1000
-settimer,_Lex,-3000
+settimer,onMsgz,-100
 
-sleep,3000
+settimer,_Lex,-210
+
 gradinit(), GradUpdate(sciinit_w-22,init_h-302) ;tbrepos()
 IDT_LV:= IDropTarget_Create(hsci, "_LV", 1)
-IDT_LV2:= IDropTarget_Create(hTab,"_LV", 1) ; no format required (for testing).
+IDT_LV2:= IDropTarget_Create(hTab,"_LV", 1) ; no format required - for testing.
 
-settimer,OnMInit,-5008
+settimer,OnMInit,-200
 
 EnterSizeMove(), HANDLES_ALLCTL:= RedRawButts()
 
-sendmessage,2121,4,0,,ahk_id %hsci% ;SCI_GETtabwidth-2121;
+sendmessage,0X849,4,0,,ahk_id %hsci% ;SCI_GETTABWIDTH-0X849;
 tabsz:= errorlevel
-guicontrol,, %htabszupdn%,%tabsz%
-
+guicontrol,,% htabszupdn,% tabsz ;settimer,marginsize,-1000
 return,
 
+WindowhIconSet(hWndl, hicon)  {
+    SendMessage 0x80, 0, hicon,, ahk_id %hWndl%  ; WM_SETICON, ICON_SMALL
+    SendMessage 0x80, 1, hicon,, ahk_id %hWndl%  ; WM_SETICON, ICON_LARGE
+    Return ErrorLevel
+}
+
+
 OnMInit:
+gosub,dlgtogl
 OnMessage(0x0003,"wm_move")
+return,
+
+#g::
+winget,ui,list,ahk_pid %r_pid%
+loop,% ui
+	WindowIconSet(ui%a_index%,ico_hbmp)
+
+tt(a_now)
+WindowIconSet(ldr_hWnd,"C:\Icon\256\pp0hand.ico")
+
 return,
 
 ; ~^#h::
@@ -256,7 +278,8 @@ if(Palactive) {
 tickboxinit() {
 	global cn1, cn2, hTab, hchk1, hchk2
 	gui,Cut0r:Add,Radio,Checked x464 y8 vcn1 gcn1 +hWndhchk1,% "Persist"
-	gui,Cut0r:Add,Checkbox,Checked x555 y8 vcn2 gcn2 +hWndhchk2,% "Dbg"
+	gui,Cut0r:Add,Checkbox,check3 x555 y8 vcn2 gcn2 +hWndhchk2,% "Dbg"
+	guicontrol,,% hchk2,-1
 	RE2:= DllCall("SetParent","uint",hchk1,"uint",hTab)
 	RE2:= DllCall("SetParent","uint",hchk2,"uint",hTab)
 }
@@ -268,6 +291,22 @@ if(!(%a_thislabel%:=!%a_thislabel%)) {
 } else,Guicontrol,,% a_thislabel,0
 return,
 ;---=--=-==\---=--=-==\---=--=-==\---=--=-==\---=--=-==\---=--=-==\---=--=-==\---=--=-==\---=--=-==\---=--=-==\==-
+
+pip3Exec:
+gui,Cut0r:Submit,nohide ; FileReadLine, line,% (%pipen%)name, %A_Index%
+script.=scriptraw
+dllcall("WriteFile",ptr,pipe,"str",Script,"uint",(StrLen(Script)+1)*char_size,"uint*",0,ptr,0)
+return,
+
+Run1:	; Wait for AutoHotkey to connect to pipe_ga via GetFileAttributes().
+Run2:	; This pipe is not needed, so close it now. (The pipe instance will not be fully
+Run3:	; destroyed until AutoHotkey also closes its handle.)
+Run4:	; Wait for AutoHotkey to connect to open the "file".
+Run5:	; Standard AHK needs a UTF-8 BOM to work via pipe. If we're running on
+Run6:	; Unicode AHK_L, 'Script' contains a UTF-16 string so add that BOM instead:
+TT("Launching " ahk_portable:= ((%A_ThisLabel%).pkg),"tray",1)
+pipe(A_ThisLabeL)
+return,
 
 EnterSizeMove(wParam="") {
 	global
@@ -288,7 +327,7 @@ EnterSizeMove(wParam="") {
 		win_move(htabszupdntxt,"",r_Wpos._:=(g_dlgframe? r_Wpos.h-40-SYSGUI_TBbUTTSZ:h-120-SYSGUI_TBbUTTSZ),"","")
 		win_move(htabszupdn,"",r_Wpos._:=(g_dlgframe? r_Wpos.h-40-SYSGUI_TBbUTTSZ:h-120-SYSGUI_TBbUTTSZ),"","")
 		win_move(htabszupdntxt2,"",r_Wpos._:=(g_dlgframe? r_Wpos.h-40-SYSGUI_TBbUTTSZ:h-120-SYSGUI_TBbUTTSZ),"","")
-
+		
 		offset:= 18
 		loop,parse,% "110,110,100,103",`,
 			offset+=a_loopfield +18, win_move(drop%a_index%,r_Wpos.w-offset,"","","")
@@ -306,9 +345,42 @@ TBRePos() {
 	(DTopDocked? win_move(htb,1,h-96,"","","") : win_move(htb,9,(g_dlgframe? h-107:h-145),"",70,""))
 	ypos:= r_Wpos.h -200 ; winset,style,-0x100,ahk_id %hTB% ; winset,exstyle,+0x2000000,ahk_id %hTB%
 		GuiControl,,+e0x -0x100,% hTB,
-	g_dlgframe? win_move(hsci,2,43,r_Wpos.w-25,r_Wpos.h -245 ,""):(win_move(hsci,6,43,r_Wpos.w-60,r_Wpos.h -271,""))
+	g_dlgframe? win_move(hsci,2,43,r_Wpos.w-25,r_Wpos.h -245 ,""):(win_move(hsci,6,43,r_Wpos.w-60,r_Wpos.h -255 ,""))
 	SendMessage,0x454,0,0x90,,ahk_id %hTB% ;only dblbuff;
 	return,0
+}	oldw:= w:=p.w-48, oldh:= h:=p.h-255	;win_move(htab,"", 0,w,	p.h-250,"") 	;guiControl,move, HIPath, w%W% h%H%	;winSet,Region,% "1-1 W" p.w " H" p.h " R20-20",ahk_id %HIPath%
+
+
+TabUpdate() {
+	global
+	loop,4 {
+		ControlGet,h3270%a_index%,hWnd,,#32770%a_index%,ahk_id %hTab%
+		if(!h3270%a_index%)
+			ControlGet,h3270%a_index%,hWnd,,#32770,ahk_id %hTab%
+		winset,ExStyle,+0x20,% "ahk_id " h3270%a_index%
+		winset,Style,-0x10000000,% "ahk_id " h3270%a_index%
+	} sleep,100
+	TabSelected:= TAB_GetCurSel(hTab), SBText:= ""
+	.	"There are " . TAB_GetItemCount(hTab) . " tabs. "
+	.	(TabSelected? "Tab " . TabSelected . " (""" . TAB_GetText(hTab,TabSelected) . """) is selected.":"No tab is selected.")
+	ControlGet,h3270,hWnd,,#32770%TabSelected%,ahk_id %hTab%
+	if(!h3270)
+		ControlGet,h3270,hWnd,,#32770,ahk_id %hTab%
+	winset,ExStyle,+0x20,ahk_id %h3270%
+	winset,Style,-0x10000000,ahk_id %h3270%
+	SB_Settext(SBText,1)
+	winget,uib,List,ahk_pid %rPiD% ; ahk_class #32770 ;
+	loop,% uib {
+		wingetclass,ldrClass,ahk_id %ldr_hWnd%
+		if(ldrClass="AutoHotkeyGUI") {
+			ControlGet,h3270,hWnd,,#327701,ahk_id %ldr_hWnd%
+			winset,ExStyle,+0x20,ahk_id %h3270%
+			winset,Style,-0x10000000,ahk_id %h3270%
+}	}	}
+
+gettext() {
+	global (%obj%) ;for,i,v in (%obj%);msgbox,%i"`n" v
+	return,byref (%obj%).getlength(txt,txtt) ;bum:= (%obj%).txt ;msgbox,% txtt " txt " txt
 }
 
 InitArrays:
@@ -324,10 +396,33 @@ loop,16 ;Dix[a_index].push({"IDNum" :,"Colour" : ,"Font":,"Size":,"Italic":,"Bol
 return,
 
 DixInit:
-Dix:= [{}], Flows:= "Comments,Multiline,Directives,Punctuation,Numbers,Strings,Builtins,Flow,Commands,Functions,Keywords,Keynames,Functions2,Descriptions,Plain"
+Dix:= [{}], Flows:="Comments,Multiline,Directives,Punctuation,Numbers,Strings,Builtins,Flow,Commands,Functions,Keywords,Keynames,Functions2,Descriptions,Plain"
 loop,parse,% Flows,`,
 	Dix[a_index]:= ({ "IDNum" : a_index, "Title" : a_loopfield, "Colour" : colz[ a_index ]})
 return,
+
+TB_Handla(lParam,wParam) { ;tt("dfgfdggfg" lParam " " wParam)
+	if(A_GuiControlEvent&&(A_GuiControlEvent!="N"))
+		msgb0x(A_GuiControlEvent)
+}
+
+Toolbar_SetButtSize(hCtrl,W,H="") {
+	static TB_SETBUTTONSIZE=0x41F
+	IfEqual,H,,SetEnv,H,% W
+	SendMessage,TB_SETBUTTONSIZE,,(H<<16)|W,,ahk_id %hCtrl%
+	SendMessage,0x421,,,,ahk_id %hCtrl%	;autosize
+}
+
+WM_COMMAND(wParam,lParam,uMsg,hWnd) {
+	global ButtPressNum
+	DetectHiddenWindows,On
+	WinGetClass, vWinClass, % "ahk_id " lParam
+	if(vWinClass="ToolbarWindow32") {
+		if(uMsg=273)
+			ButtHandl4(ButtPressNum:= wParam +1)
+		return,
+	}
+}
 
 ButtonCancel:
 return,
@@ -380,63 +475,45 @@ return,
 ;*    Functions    *;
 ;*                 *;
 ;*******************;
-TabUpdate() {
-	global
-	loop,4 {
-		ControlGet,h3270%a_index%,hWnd,,#32770%a_index%,ahk_id %hTab%
-		if(!h3270%a_index%)
-			ControlGet,h3270%a_index%,hWnd,,#32770,ahk_id %hTab%
-		winset,ExStyle,+0x20,% "ahk_id " h3270%a_index%
-		winset,Style,-0x10000000,% "ahk_id " h3270%a_index%
-	} sleep,100
-	TabSelected:= TAB_GetCurSel(hTab), SBText:= ""
-	.	"There are " . TAB_GetItemCount(hTab) . " tabs. "
-	.	(TabSelected? "Tab " . TabSelected . " (""" . TAB_GetText(hTab,TabSelected) . """) is selected.":"No tab is selected.")
-	ControlGet,h3270,hWnd,,#32770%TabSelected%,ahk_id %hTab%
-	if(!h3270)
-		ControlGet,h3270,hWnd,,#32770,ahk_id %hTab%
-	winset,ExStyle,+0x20,ahk_id %h3270%
-	winset,Style,-0x10000000,ahk_id %h3270%
-	SB_Settext(SBText,1)
-	winget,uib,List,ahk_pid %rPiD% ; ahk_class #32770 ;
-	loop,% uib {
-		wingetclass,ldrClass,ahk_id %ldr_hWnd%
-		if(ldrClass="AutoHotkeyGUI") {
-			ControlGet,h3270,hWnd,,#327701,ahk_id %ldr_hWnd%
-			winset,ExStyle,+0x20,ahk_id %h3270%
-			winset,Style,-0x10000000,ahk_id %h3270%
-}	}	}
-
-gettext() {
-	global (%obj%) ;for,i,v in (%obj%);msgbox,%i"`n" v
-	return,byref (%obj%).getlength(txt,txtt) ;bum:= (%obj%).txt ;msgbox,% txtt " txt " txt
-}
-
-TB_Handla(lParam,wParam) { ;tt("dfgfdggfg" lParam " " wParam)
-	if(A_GuiControlEvent&&(A_GuiControlEvent!="N"))
-		msgb0x(A_GuiControlEvent)
-}
-
-Toolbar_SetButtSize(hCtrl,W,H="") {
-	static TB_SETBUTTONSIZE=0x41F
-	IfEqual,H,,SetEnv,H,% W
-	SendMessage,TB_SETBUTTONSIZE,,(H<<16)|W,,ahk_id %hCtrl%
-	SendMessage,0x421,,,,ahk_id %hCtrl%	;autosize
-}
-
-WM_COMMAND(wParam,lParam,uMsg,hWnd) {
-	global ButtPressNum
-	DetectHiddenWindows,On
-	WinGetClass, vWinClass, % "ahk_id " lParam
-	if(vWinClass="ToolbarWindow32") {
-		if(uMsg=273)
-			ButtHandl4(ButtPressNum:= wParam +1)
-		return,
-	}
-}
 
 Paletteinit() {
 	global
+;	local lexcoL_arr had to remove all of this as it somehow causes gdi to go crazy and not do gradients
+;	lexcoL_arr:=[]
+;	SetBatchLines,		10
+;
+;lexcoL_arr["col_IDENTIFIER"]	:="0xFFA044", 
+;lexcoL_arr["col_COMMENTBLOCK"]	:="0x701530", 
+;lexcoL_arr["col_STRINGOPTS"]	:="0x00EEEE", 
+;lexcoL_arr["col_LABEL"]			:="0x0000DD", 
+;lexcoL_arr["col_HOTSTRINGOPT"]	:="0x990099", 
+;lexcoL_arr["col_VAR"]			:="0xFF9000", 
+;lexcoL_arr["col_USERFUNCTION"]	:="0x0000DD", 
+;lexcoL_arr["col_PARAM"]			:="0x0085DD", 
+;lexcoL_arr["col_BUILTINVAR"]	:="0xEE00ff", 
+;lexcoL_arr["col_USERDEFINED2"]	:="0x00FF00", 
+; lexcoL_arr["col_COMMENTLINE"]		:="0x701530"
+; lexcoL_arr["col_STRING"]			:="0xA2A2A2"
+; lexcoL_arr["col_STRINGCOMMENT"]	:="0xFF0000"
+; lexcoL_arr["col_HOTSTRING"]		:="0x00BBBB"
+; lexcoL_arr["col_DECNUMBER"]		:="0xFF9000"
+; lexcoL_arr["col_OBJECT"]			:="0x008888"
+; lexcoL_arr["col_COMMAND"]			:="0x0000DD"
+; lexcoL_arr["col_BUILTINFUNCTION"]	:="0xDD00DD"
+; lexcoL_arr["col_USERDEFINED1"]	:="0xFF0000"
+; lexcoL_arr["col_ERROR"]			:="0xFF0000"
+;lexcoL_arr["col_COMMENTDOC"]		:="0x008888"
+;lexcoL_arr["col_COMMENTKEYWORD"]	:="0xA50000"
+;lexcoL_arr["col_STRINGBLOCK"]		:="0x66A2ff"
+;lexcoL_arr["col_HOTKEY"]			:="0x00AADD"
+;lexcoL_arr["col_HEXNUMBER"]		:="0x880088"	
+;lexcoL_arr["col_VARREF"]			:="0x990055"
+;lexcoL_arr["col_DIRECTIVE"]		:="0x4A0000"	
+;lexcoL_arr["col_CONTROLFLOW"]		:="0x0000DD"
+;lexcoL_arr["col_KEY"]				:="0xA2A2A2"
+;lexcoL_arr["col_ESCAPESEQ"]		:="0x660000"
+;		SetBatchLines,		-1
+							  
 	gui,APCBackMain:New,-DPIScale +Toolwindow +Owner -SysMenu +AlwaysOnTop -0x4000000  +HWNDhPal,Palette
 	gui,APCBackMain: Font, s9 cblack,Continuum Light ;gui,APCBackMain:font, csilver bold
 	gui,APCBackMain: -Resize -Caption +lastfound
@@ -447,31 +524,38 @@ Paletteinit() {
 		For,ColNum,ColorHex In Colors[ColorName] {
 			gui,Add,Text,% "x" (n *ColNum-5) -n " y" (11 *RowNum) -n " w" n+2 " h" n+2 " +0x4E +HWNDhColor" A_Index, % ColorName " - #" ColorHex
 			CtlColor(ColorHex, hColor%A_Index%)
-		} ((RowNum<10)? floor((n+=0.05*RowNum)) : floor((n-=0.011*(RowNum/1))))
-	} loop,parse,% Flows,`,
+		}
+		((RowNum<10)? floor((n+=0.05*RowNum)) : floor((n-=0.011*(RowNum/1))))
+	}
+	loop,parse,% Flows,`,
 	{
 		gui,Add,Radio,% "+hwndb" a_index " cBlack y" (-20+20 * a_index) " x128 v" a_loopfield " gpalbutthandla",% a_loopfield
 		nog:= bgrRGB(nog:= substr(dix[a_index].colour,3,6))
 		gui,APCBackMain: Font,c%nog%
 		Guicontrol,font,% a_loopfield
 		global (%a_loopfield%), ("b" , a_index)
-	} for,i,am in lexables {
+	}
+	for,i,am in gay {
 		if(a_index>40) {
-		  x_offset:= 480, y_offset:=700-8
-		} else,if a_index between 21 and 31
-		{ x_offset:= 320, y_offset:=480-8
-		} else,if a_index between 11 and 21
-		{ x_offset:= 190, y_offset:=240-8
-		} else,if a_index between 0 and 11
-		{ x_offset:= 18, y_offset:=-8
-		} c:= strreplace(lexcoL_arr[strreplace(am, "sce_ahkl_", "col_")],"0x")
-		guiLexcoLtxt_arr[strreplace(am, "sce_ahkl_", "col_")]	:=
-		gui,Add,Text,%  " x" x_offset  " y" (i*24+326) -y_offset " c" c " hwnd ",% strreplace(am, "sce_ahkl_")
-	} ;for,i,am in guiLexcoLtxt_arr doesnt proc		;msgbox.% guiLexcoLtxt_arr[i] doesnt proc
-}
+		  nigger:= 480, youcunt:=700+8
+		} else,if a_index between 20 and 30
+		{ nigger:= 320, youcunt:=480+8
+		} else,if a_index between 10 and 20
+		{ nigger:= 190, youcunt:=240+8
+		} else,if a_index between 0 and 10
+		{ nigger:= 18, youcunt:=30
+				;msgbox % agh:=strreplace(am, "sce_ahkl_", "col_")
+	;	msgbox % gay2[agh]
+	;	msgbox % "c" . strreplace(gay2[strreplace(am, "sce_ahkl_", "col_")],"0x")
+		} gui,Add,Text,%  " x" nigger  " y" (i*24+326)-youcunt " cred",% strreplace(am, "sce_ahkl_")
+}	}
 
 Gradinit() {
 	global
+	OGdip.Startup()
+
+OnExit(ObjBindMethod(OGdip, "Shutdown"))
+OGdip.autoGraphics:= True
 	gui,grad:+lastfound +E0x02080000 -border -caption +owndialogs +alwaysontop +resize -0xC0000
 	Gui,grad:Add,Picture,x0 y0 vhipathz w%init_w% h500 HwndHIPath +0x800000
 	CC:= {Base:{__Get:OGdip.GetColor}}
@@ -503,7 +587,8 @@ TabViewinit() {
 	by:= (360 +(bH:= 34) +(margY:= 40))
 	for,i,f in tabicons_init 					;-- Add the tabs and assign an icon
 		TAB_InsertItem(hTab,i,f,i) 				;-- End of tabs	;LPos:= wingetPos(ldr_hWnd)
-	;gui,Cut0r: Add,Slider,% "x" . (a:=init_w-500) . " y" . (b:=init_H-250) . " vTabHeightSlider gTabHeightSlider AltSubmit NoTicks Range" . MinTabHeight . "-" . MaxTabHeight . " Vertical"	;,% TAB_GetItemHeight(hTab)
+	;gui,Cut0r: Add,Slider,% "x" . (a:=init_w-500) . " y" . (b:=init_H-250) . " vTabHeightSlider gTabHeightSlider AltSubmit NoTicks Range" . MinTabHeight . "-" . MaxTabHeight . " Vertical"
+	;,% TAB_GetItemHeight(hTab)
 }
 
 TabHeightSlider:
@@ -588,8 +673,8 @@ Butts_init() {
 					, "btn"  : "Ansi-x86"})
 		} GuiControl,text,% (run%a_index%).hWnd,% (run%a_index%).btn ;(run%a_index%).hWnd "`n" (run%a_index%).btn
 	} bY-=18
-	gui,Cut0r:Add,CheckBox,% "+hwndhcheckdlg Gdlgtogl vg_dlgframe x845 y580" ,% "&dlgframe"
-	gui,Cut0r:Add,text, x845 y600  hwndhtabszupdntxt
+	gui,Cut0r:Add,CheckBox,% "+hwndhcheckdlg Gdlgtogl check3 vg_dlgframe x845 y580" ,% "&dlgframe"
+	gui,Cut0r:Add,text, x845 y600  hwndhtabszupdntxt 
 	gui,Cut0r:Add,UpDown,% "+hwndhtabszupdn Gtabsz vtabsz x845 y600"
 	gui,Cut0r:Add,text, x885 y600  hwndhtabszupdntxt2, tab_chrs
 }
@@ -603,8 +688,12 @@ if(g_dlgframe:=!g_dlgframe) {
 	P:=wingetpos(ldr_hwnd)
 	winset,style,-0x400000,ahk_id %ldr_hWnd%
 	winset,style,+0x40000,ahk_id %ldr_hWnd%
-} else winset,style,+0x400000,ahk_id %ldr_hWnd%
-sleep(1000)
+	guicontrol,,% hcheckdlg,-1
+} else {
+	winset,style,+0x400000,ahk_id %ldr_hWnd%
+	guicontrol,,% hcheckdlg,0
+}
+sleep(600)
 redraw()
 return,
 
@@ -613,7 +702,8 @@ loop,parse,HANDLES_ALLCTL,`,
 	controls[ a_index ]:= A_loopfield
 	, controlsmaxi:= a_index
 	msgbox % controlsmaxi
-if(bbounce:=!bbounce) { ;settimer,bbb,1
+if(bbounce:=!bbounce) {
+;	settimer,bbb,1
 	settimer,bb,1
 } else {
 	settimer,bb,off
@@ -625,26 +715,26 @@ if(bbounce:=!bbounce) { ;settimer,bbb,1
 bb:
 buttbounce(htb,17,250)
 return,
+		bbb:
+		buttbounce2()
 
-bbb:
-buttbounce2()
-return,
-
+		return,
 buttbounce2() {
 	butts_up:
 	loop,% controlsmaxi {
 		SendMessage,0xF3,1,0,,% "ahk_id " controls[a_index] ;BM_SETSTATE
 		sleep,45
-	} ;return,
+	} 		;return,
 	butts_dn:
 	loop,% controlsmaxi {
-		SendMessage,0xF3,0,0,,% "ahk_id " controls[controlsmaxi+1-a_index] ;BM_SETSTATE
+		SendMessage,0xF3,0,0,,% "ahk_id " controls[controlsmaxi+1-a_index] ;BM_SETSTATE 
 		sleep,45
 	}		;return,
 }
-
+	
 ButtBounce(tbhandle="",butts="",hilt_ms=199) {
 	global
+	;loop,1 {
 		loop,% butts {
 			(!bbounce? return())
 			SendMessage,0x448,a_index-1,0,,ahk_id %tbhandle% ;TB_SETIMAGELIST:=0x430 ;TB_ADDBUTTONSA:= 0x414 TB_SETHOTITEM-0x448
@@ -654,6 +744,7 @@ ButtBounce(tbhandle="",butts="",hilt_ms=199) {
 			SendMessage,0x448,butts-a_index,0,,ahk_id %tbhandle% ;TB_SETIMAGELIST:=0x430 ;TB_ADDBUTTONSA:= 0x414
 			sleep,% hilt_ms
 		}
+	;} 
 }
 
 ToolbarInit() {
@@ -708,6 +799,7 @@ IconInit() {
 		IL_Add(hIL3,icopath,0)
 	for,i,icopath in icon_array3
 		IL_Add(hIL4,icopath,0)
+
 	tabicons_init:= []			;fsState	;	TBSTATE_ENABLED:= 4
 	loop,4									; str=tabicons_init.push("ahk" . a_index)
 		tabicons_init.push("ahk" . a_index)	; loop(6,str)
@@ -755,12 +847,13 @@ OnMessage(0x0233,"wm_dropfile")
 OnMessage(0x0111,"WM_COMMAND")
 OnMessage(0x0231,"EnterSizeMove")
 OnMessage(0x200,"OnWM_MOUSEMOVE")
-OnMessage(0x201,"WM_lrBUTTONDOWN")
-OnMessage(0x202,"WM_lrBUTTONup")
 OnMessage(0x0005,"EnterSizeMove")
 OnMessage(0x0006,"wm_activate")
 OnMessage(0x015,"WM_DPICHANGED") ;WM_SYSCOLORCHANGE seems to be  cause of relog gfx issue banner2
+;OnMessage(0x20A,"wheel") ;WM_MOUSEWHEEL 522 0x20A
 return,
+
+
 
 wm_dropfile(wParam="",lParam="",msg="",hwnd="") {
 for,i,file in lParam
@@ -790,7 +883,7 @@ Receive_WM_COPYDATA(byref wParam,byref lParam) {
 
 WM_KEYDN(wParam="",lParam="",msg="",hwnd="") {
 	global modkeyheld
-	switch,wParam {
+	switch,wParam {   
 		case,"16","17": (modkey%wParam%held):=true
 	} return,
 }
@@ -809,7 +902,9 @@ WM_KEYUP(wParam,lParam,msg="",hwnd="") {
 	;		gui,par	: submit,nohide
 	;		send,{tab}
 	;		return
-		default : if(modkey16held&&modkey17held) { ;tooltip % ("negated"),,,2
+		default : 		tooltip, dda
+
+		if(modkey16held&&modkey17held) { ;tooltip % ("negated"),,,2
 				return,
 			} settimer,_Lex,-19
 	return,
@@ -846,48 +941,37 @@ WM_LBUTTONDOWN(wParam,lParam,Msg,Hwnd) {
 	return,
 }
 
-WM_lrBUTTONDOWN(wParam,lParam,msg,hwnd2) {
-	global lbutton_cooldown, lbd, STrigga:= True,	lb_timestart:= a_tickcount
+WM_lrBUTTONDOWN(wParam,lParam,mDC) {
+	global lbutton_cooldown, lbd, STrigga:= True
 	static init, RECT
-	(hwnd2=hsci? return())
-	po:=wingetpos(ldr_hwnd)
 	(!init? VarSetCapacity(RECT,16,0))
 	xs:= lParam &0xffff, ys:= lParam>>16
-	mousegetpos,xs,ys,mhwnd
 	((ys<42)? wm_move())
-	xoff:=xs-po.x, yoff:=ys-po.y
-	if(STrigga)
-		While(LbD:= GetKeyState("lbutton","P")||lbd:= GetKeyState("lbutton","P")) {
-			mousegetpos,xm,ym
-			win_move(ldr_hwnd,xm-xoff,ym-yoff,CURRENT_W,CURRENT_H,0x4001)
-			ssleep(4) ;TBRePos() ;DllCall("MoveWindow","Uint",hWnd1,"int",vWinX,"int",vWiny,"int",rw,"int",rh,"Int",2)
-				;settimer,grace,-200
-			if(!lbd) { ;settimer,WM_lrBUTTONup,-150
-				if((lb_timestart+300)< a_tickcount)
-				return,1
-			}
-		}
+	While(LbD:= GetKeyState("lbutton","P")||lbd:= GetKeyState("lbutton","P")) {
+		DllCall("GetCursorPos","Uint",&RECT)
+		win_move(hgui,(NumGet(&RECT,0,"Int")-xs),(NumGet(&RECT,4,"Int") -ys),CURRENT_W,CURRENT_H,0x4001)
+		ssleep(4)
+		TBRePos() ;DllCall("MoveWindow","Uint",hWnd1,"int",vWinX,"int",vWiny,"int",rw,"int",rh,"Int",2)
+		if(STrigga)
+			settimer,grace,-400
+		if(!lbd){
+			settimer,WM_lrBUTTONup,-150
+			return,0
+	}	}
+	grace:
+	disgrace:
+	(instr(a_thislabel,"dis")? STrigga:= False : STrigga:= True)
 }
 
-grace:
-disgrace:
-(instr(a_thislabel,"dis")? STrigga:= False : STrigga:= True)
-return,
-
-WM_lrBUTTONup(wParam="",lParam="",msg="",hwnd2="") { ;Toggle Maximise & fill;
+WM_lrBUTTONup(wParam="",lParam="") { ;Toggle Maximise & fill;
 	global STrigga, LbD:= ""
-	(hwnd2=hsci? return())
-	if((lb_timestart+300)< a_tickcount)
-		return,1
 	if(!STrigga) {
 		settimer,MenuGuiShow,-1
-		return,1
-	}else return,
-}
+}	}
 
 WM_MOVEEND() {
 	global palmovtrig, Palactive ;if(!Palactive)winset,transparent,240,ahk_id %hpal%
-	settimer,redraw,-700
+settimer,redraw,-900
 	return,	 palmovtrig:= False
 }
 
@@ -908,11 +992,11 @@ WM_MOVE(wParam="",lParam="",msg="",hWnd="") {
 
 OnWM_MOUSEMOVE(wParam="",lParam="",msg="",hWnd2="") {
 	global CurChanged,HANDLES_ALLCTL
-	hWnd3:= Format("{:#x}",hWnd2) ;msgbox % hWnd3 "`n" HANDLES_ALLCTL
+hWnd3:= Format("{:#x}",hWnd2)
+;msgbox % hWnd3 "`n" HANDLES_ALLCTL
 	switch,hWnd3 {
 		case,htb : (!CurChanged? (SetSystemCursor("C:\Script\AHK\GUi\hand84-nq8.cur",84,84), CurChanged:= true))
-		default : instr(HANDLES_ALLCTL,hWnd3)? (!CurChanged? (SetSystemCursor("C:\Script\AHK\GUi\hand84-nq8.cur",84,84), CurChanged:= true))
-				: (CurChanged? (DllCall("SystemParametersInfo","uInt",0x57,"uInt",0,"uInt",0,"uInt",0), CurChanged:= false))
+		default :  instr(HANDLES_ALLCTL,hWnd3)? (!CurChanged? (SetSystemCursor("C:\Script\AHK\GUi\hand84-nq8.cur",84,84), CurChanged:= true)) : (CurChanged? (DllCall("SystemParametersInfo","uInt",0x57,"uInt",0,"uInt",0,"uInt",0), CurChanged:= false))
 	}
 }
 
@@ -920,8 +1004,9 @@ gCursor(cursor="C:\Script\AHK\GUi\hand84-nq8.cur") {
  return,CurSet(cursor,84,84)
 }
 
+
 RedRaw() { ;return
-	static init, HandlesAll
+ 	static init, HandlesAll
 	if(!init) {
 		loop,parse,% "ldr_hWnd,SbarhWnd,htb,htab,hsci",`,
 			HandlesAll.= %a_loopfield% ","
@@ -933,9 +1018,12 @@ RedRaw() { ;return
 			HandlesAll.= drop%a_index% ","
 		loop,2
 			HandlesAll.=  hchk%a_index% ","
-		loop,parse, % "hcheckdlg,htabszupdn,htabszupdntxt,htabszupdntxt2"
-			HandlesAll.= a_loopfield  ","
-		init:=True
+		HandlesAll.= hcheckdlg ","
+		HandlesAll.= htabszupdn ","
+		HandlesAll.= htabszupdntxt ","
+		HandlesAll.= htabszupdntxt2
+		
+		init:=True ;sci.GrabFocus()
 	}	loop,parse,HandlesAll,`,
 			winset,redraw,,ahk_id %a_loopfield%
 	return,HandlesAll
@@ -952,8 +1040,10 @@ RedRawButts() {
 			Handles_All_Butts.= drop%a_index% ","
 		loop,2
 			Handles_All_Butts.= hchk%a_index% ","
-		loop,parse, % "hcheckdlg,htabszupdn,htabszupdntxt,htabszupdntxt2"
-			Handles_All_Butts.= a_loopfield  ","
+		Handles_All_Butts.= hcheckdlg  ","
+		Handles_All_Butts.= htabszupdn ","
+		Handles_All_Butts.= htabszupdntxt ","
+		Handles_All_Butts.= htabszupdntxt2
 		init:= True
 	}	loop,parse,handles_all_butts,`,
 			winset,redraw,,ahk_id %a_loopfield%
@@ -974,14 +1064,14 @@ TEST() {
 }
 
 _Lex(){
-	 return,
-	; global ldr_hWnd,sci,scihwnd,r_pid
-	; static p1d,hw,init:=0	;static textnew, textold	;, txtlold, txtl
-	; static phwn,sciname
-	; if (init=0) {
-	; 	phwn:= ldr_hWnd, sciname:= "scintilla1", pid:="", init:= 1
-	; }
-	; return,searchrep(Textnew:= sci_getall(hw,p1d))
+	 ; return,
+	global ldr_hWnd,sci,scihwnd,r_pid
+	static p1d,hw,init:=0	;static textnew, textold	;, txtlold, txtl
+	static phwn,sciname
+	if (init=0) {
+		phwn:= ldr_hWnd, sciname:= "scintilla1", pid:="", init:= 1
+	}
+	return,searchrep(Textnew:= sci_getall(hw,p1d))
 }
 
 Glass(thisColor=0x11402200,thisAlpha="",hWnd="") {
@@ -1003,22 +1093,6 @@ CreateNamedPipe(Name,OpenMode=3,PipeMode=0,MaxInstances=255) {
 	return,dllcall("CreateNamedPipe","str","\\.\pipe\" Name,"uint",OpenMode
 	,"uint",PipeMode,"uint",MaxInstances,"uint",0,"uint",0,"uint",0,"uint",0)
 }
-
-pip3Exec:
-gui,Cut0r:Submit,nohide ; FileReadLine, line,% (%pipen%)name, %A_Index%
-script.=scriptraw
-dllcall("WriteFile",ptr,pipe,"str",Script,"uint",(StrLen(Script)+1)*char_size,"uint*",0,ptr,0)
-return,
-
-Run1:	; Wait for AutoHotkey to connect to pipe_ga via GetFileAttributes().
-Run2:	; This pipe is not needed, so close it now. (The pipe instance will not be fully
-Run3:	; destroyed until AutoHotkey also closes its handle.)
-Run4:	; Wait for AutoHotkey to connect to open the "file".
-Run5:	; Standard AHK needs a UTF-8 BOM to work via pipe. If we're running on
-Run6:	; Unicode AHK_L, 'Script' contains a UTF-16 string so add that BOM instead:
-TT("Launching " ahk_portable:= ((%A_ThisLabel%).pkg),"tray",1)
-pipe(A_ThisLabeL)
-return,
 
 getPipePiD(byref pipe_n) {
 	Sleep(3000), hw:= winexist(ad:= ("\\.\pipe\" . pipe_n))
@@ -1253,11 +1327,33 @@ PaintLexForceoff:
 PaintLexForce:= False
 return,
 
+Marginsize:
+;msgbox,% "not called during init see."
+sendmessage,0X868,1,1,,ahk_id %hsci%
+FirstVisibleLine:= errorlevel
+if(!LinesOnScreen) {
+	sendmessage,0X942,1,1,,ahk_id %hsci%
+	LinesOnScreen:= errorlevel ;tooltip,% LinesOnScreen " - " FirstVisibleLine
+} if linesonscreen +firstvisibleline<100
+	sci.SetMarginWidthN(0,20)
+else,if linesonscreen +firstvisibleline>1019
+	sci.SetMarginWidthN(0,38)
+else,sci.SetMarginWidthN(0,28)
+;tooltip %a_thishotkey%
+return,
+
+~wheelup::
+~wheeldown::
+settimer,marginsize,-100
+return,
+
 setlexerStyle() {
 global
+gay2:={}
+;gosub,marginsize
 sci.SetMarginWidthN(0,32) ; Show line numbers
 sci.SetMarginMaskN(1,SC_MASK_FOLDERS) ; Show folding symbolsSC_MASK_FOLDERS
-sci.SetMarginSensitiveN(1,true) ; Catch Margin click notifications
+;sci.SetMarginSensitiveN(1,true) ; Catch Margin click notifications
 sci.MarkerDefine(SC_MARKNUM_FOLDER,SC_MARK_BOXPLUS) ; Set up Margin Symbols
 sci.MarkerDefine(SC_MARKNUM_FOLDEROPEN,SC_MARK_BOXMINUS)
 sci.MarkerDefine(SC_MARKNUM_FOLDERSUB,SC_MARK_VLINE)
@@ -1280,27 +1376,31 @@ sci.MarkerSetBack(SC_MARKNUM_FOLDEROPENMID,0x5A5A5A)
 sci.MarkerSetFore(SC_MARKNUM_FOLDERMIDTAIL,0x000000)
 sci.MarkerSetBack(SC_MARKNUM_FOLDERMIDTAIL,0x00FF00)
 sci.SetFoldFlags(SC_FOLDFLAG_LEVELNUMBERS)
-sci.SetLexer(Style_DEFAULT)
 sci.SetReadOnly(False)
-sci.StyleSetFont(32,"ms gothic","ms gothic")
-sci.Stylesetsize(32,11)
-sci.StyleSetFore(Style_DEFAULT,0x8855ff)
+ sci.StyleSetback(STYLE_BRACEBAD,		0xFFeeff)
+ sci.StyleSetFore(SCE_AHKL_STRINGOPTS,	0x0022EE)
+ sci.StyleSetFore(SCE_AHKL_STRINGBLOCK,	0xA2A2A2) 
+ sci.StyleSetFore(SCE_AHKL_STRINGCOMMENT,0xFF0000)
+ sci.StyleSetFore(STYLE_BRACELIGHT,		0xFFff00)
+ sci.StyleSetback(STYLE_BRACELIGHT,		0xFFff00)
+ sci.StyleSetFore(STYLE_BRACEBAD,		0x5554ff)
+ sci.StyleSetFont(Style_DEFAULT,"monospaced","monospaced")
+sci.Stylesetsize(Style_DEFAULT,10)
+sci.StyleSetFore(Style_DEFAULT,0x9900ff)
 sci.StyleSETBACK(Style_DEFAULT,0x000000)
 sci.SETWHITESPACEback(Style_DEFAULT,0x000000)
 sci.StyleSetBold(Style_DEFAULT,False)
-sci.SETUSETABS(True)
-sci.SCI_SETTABINDENTS(1)
-
+sci.SetLexer(Style_DEFAULT)
+;sci.SETUSETABS(True) 
+;sci.SCI_SETTABINDENTS(1)
 sci.DELETEBACK()
-sci.SCI_SETTABWIDTH(1)
+sci.SetLexer(SCLEX_AHKL)
+;sci.SCI_SETTABWIDTH(1)
 sci.SetcaretFore(0x664433)
 sci.SETselectionback(Style_DEFAULT,0x00aaff)
 sci.SETSELBACK(Style_DEFAULT,0x400580)
-;sci.SetLexer(SCLEX_AHKL)
-sci.SCI_SETTABWIDTH(1)
-sci.StyleClearAll()
-sci.Notify := "SCI_NOTIFY"
-; Command list
+sci.SetLexer(SCLEX_AHKL) ;sci.SCI_SETTABWIDTH(1)
+sci.Notify := "SCI_NOTIFY" ; Command list
 Dir=
 (
 #allowsamelinecomments #clipboardtimeout #commentflag #errorstdout #escapechar #hotkeyinterval
@@ -1425,75 +1525,89 @@ browser_favorites browser_home volume_mute volume_down volume_up media_next medi
 media_play_pause launch_mail launch_media launch_app1 launch_app2 blind click raw wheelleft
 wheelright
 )
-  sci.SetWrapMode(true), sci.SetLexer(SCLEX_AHKL) ; Set Autohotkey Lexer and default options
-  sci.StyleSetFont(STYLE_DEFAULT,"Courier New"), sci.StyleSetSize(STYLE_DEFAULT,10),
+	sci.SetLexer(SCLEX_AHKL)  
+	sci.Stylesetsize(SCLEX_AHKL,10)
+	sci.StyleClearAll()
+	sci.StyleSetBold(SCLEX_AHKL,False)
+	sci.SetWrapMode(True)
+	; Set Autohotkey Lexer and default options
+	sci.StyleSetFont(STYLE_DEFAULT,"Courier New"), sci.StyleSetSize(STYLE_DEFAULT,10)
 	sendmessage,2036,4,0,,ahk_id %hsci% ;SCI_GETTEXT:=2182;
-  sci.StyleClearAll()
-  sci.StyleSetFore(SCE_AHKL_IDENTIFIER,		lexcoL_arr["col_IDENTIFIER"]	) ; Set Style Colors
-  sci.StyleSetFore(SCE_AHKL_COMMENTDOC,		lexcoL_arr["col_COMMENTDOC"]	)
-  sci.StyleSetFore(SCE_AHKL_COMMENTLINE,	lexcoL_arr["col_COMMENTLINE"]	)
-  sci.StyleSetFore(SCE_AHKL_COMMENTBLOCK,	lexcoL_arr["col_COMMENTBLOCK"]), sci.StyleSetBold(SCE_AHKL_COMMENTBLOCK,true)
-  sci.StyleSetFore(SCE_AHKL_COMMENTKEYWORD,	lexcoL_arr["col_COMMENTKEYWORD"]), sci.StyleSetBold(SCE_AHKL_COMMENTKEYWORD,true)
-  sci.StyleSetFore(SCE_AHKL_STRING,			lexcoL_arr["col_STRING"]		)
-  sci.StyleSetFore(SCE_AHKL_STRINGOPTS,		lexcoL_arr["col_STRINGOPTS"]	), sci.StyleSetBold(SCE_AHKL_STRINGOPTS,true)
-  sci.StyleSetFore(SCE_AHKL_STRINGBLOCK,	lexcoL_arr["col_STRINGOPTS"]	), sci.StyleSetBold(SCE_AHKL_STRINGBLOCK,true)
-  sci.StyleSetFore(SCE_AHKL_STRINGCOMMENT,	lexcoL_arr["col_STRINGCOMMENT"])
-  sci.StyleSetFore(SCE_AHKL_LABEL,			lexcoL_arr["col_LABEL"]		)
-  sci.StyleSetFore(SCE_AHKL_HOTKEY,			lexcoL_arr["col_HOTKEY"]		)
-  sci.StyleSetFore(SCE_AHKL_HOTSTRING,		lexcoL_arr["col_HOTSTRING"]	)
-  sci.StyleSetFore(SCE_AHKL_HOTSTRINGOPT,	lexcoL_arr["col_HOTSTRINGOPT"])
-  sci.StyleSetFore(SCE_AHKL_HEXNUMBER,		lexcoL_arr["col_HEXNUMBER"]	)
-  sci.StyleSetFore(SCE_AHKL_DECNUMBER,		lexcoL_arr["col_DECNUMBER"]	)
-  sci.StyleSetFore(SCE_AHKL_VAR,			lexcoL_arr["col_VAR"]			)
-  sci.StyleSetFore(SCE_AHKL_VARREF,			lexcoL_arr["col_VARREF"]		)
-  sci.StyleSetFore(SCE_AHKL_OBJECT,			lexcoL_arr["col_OBJECT"]		)
-  sci.StyleSetFore(SCE_AHKL_USERFUNCTION,	lexcoL_arr["col_USERFUNCTION"])
-  sci.StyleSetFore(SCE_AHKL_DIRECTIVE,		lexcoL_arr["col_DIRECTIVE"]	), sci.StyleSetBold(SCE_AHKL_DIRECTIVE,true)
-  sci.StyleSetFore(SCE_AHKL_COMMAND,		lexcoL_arr["col_COMMAND"]		), sci.StyleSetBold(SCE_AHKL_COMMAND,true)
-  sci.StyleSetFore(SCE_AHKL_PARAM,			lexcoL_arr["colPARAM_"]		)
-  sci.StyleSetFore(SCE_AHKL_CONTROLFLOW,	lexcoL_arr["col_CONTROLFLOW"]	)
-  sci.StyleSetFore(SCE_AHKL_BUILTINFUNCTION,lexcoL_arr["col_BUILTINFUNCTION"])
-  sci.StyleSetFore(SCE_AHKL_BUILTINVAR,		lexcoL_arr["col_BUILTINVAR"]	), sci.StyleSetBold(SCE_AHKL_BUILTINVAR,true)
-  sci.StyleSetFore(SCE_AHKL_USERDEFINED1,	lexcoL_arr["col_USERDEFINED1"]	)
-  sci.StyleSetFore(SCE_AHKL_USERDEFINED2,	lexcoL_arr["col_USERDEFINED2"]	)
-  sci.StyleSetFore(SCE_AHKL_ESCAPESEQ,		lexcoL_arr["col_ESCAPESEQ"]		)
-  sci.StyleSetFore(SCE_AHKL_ERROR,			lexcoL_arr["col_ERROR"]			)
-  sci.StyleSetFore(SCE_AHKL_KEY,			lexcoL_arr["col_KEY"]			), sci.StyleSetBold(SCE_AHKL_KEY,true), sci.StyleSetItalic(SCE_AHKL_KEY,true)
+	sendmessage,2353,0,0,,ahk_id %hsci% ;SCI_BRACEMATCH
+	sendmessage,2352,1,1,,ahk_id %hsci% ;
+	sendmessage,2351,1,1,,ahk_id %hsci% ;
+	sendmessage,2373,-3,-3,,ahk_id %hsci% ;SCI_SETZOOM:=
 
-sci.StyleSetItalic(SCE_AHKL_ESCAPESEQ,		true)
-sci.GrabFocus()
+  sci.StyleSetFore(SCE_AHKL_IDENTIFIER,			gay2["col_IDENTIFIER"]:=0xFF0000) ;Set Style Colors
+  sci.StyleSetFore(SCE_AHKL_COMMENTDOC,			gay2["col_COMMENTDOC"]:= 0x000088)
+  sci.StyleSetFore(SCE_AHKL_COMMENTLINE,		gay2["col_COMMENTLINE"]:= 0x701530)
+  sci.StyleSetFore(SCE_AHKL_COMMENTBLOCK,		gay2["col_COMMENTBLOCK"]:= 0x701530), sci.StyleSetBold(SCE_AHKL_COMMENTBLOCK,False)
+  sci.StyleSetFore(SCE_AHKL_COMMENTKEYWORD,		gay2["col_COMMENTKEYWORD"]:= 0xA50000), sci.StyleSetBold(SCE_AHKL_COMMENTKEYWORD,False)
+  sci.StyleSetFore(SCE_AHKL_STRING,				gay2["col_STRING"]:= 0xaaaa00)
+ ; sci.StyleSetFore(SCE_AHKL_STRINGOPTS,	0x0022EE)
+ ; sci.StyleSetFore(SCE_AHKL_STRINGBLOCK,	0xA2A2A2)
+  sci.StyleSetFore(SCE_AHKL_STRINGCOMMENT,		0xFF0000)
+  sci.StyleSetFore(STYLE_BRACELIGHT,		0xFFff00)
+  sci.StyleSetback(STYLE_BRACELIGHT,		0xFFff00)
+  sci.StyleSetFore(STYLE_BRACEBAD,		0x5554ff)
+  sci.StyleSetback(STYLE_BRACEBAD,		0xFFeeff)
+  sci.StyleSetFore(SCE_AHKL_LABEL,				gay2["col_LABEL"]:= 0x0000DD)
+  sci.StyleSetFore(SCE_AHKL_HOTKEY,				gay2["col_HOTKEY"]:= 0x00AADD)
+  sci.StyleSetFore(SCE_AHKL_HOTSTRING,			gay2["col_HOTSTRING"]:= 0x0000BB)
+  sci.StyleSetFore(SCE_AHKL_HOTSTRINGOPT,		0x990099)
+  sci.StyleSetFore(SCE_AHKL_HEXNUMBER,			gay2["col_HEXNUMBER"]:= 0x880088)
+  sci.StyleSetFore(SCE_AHKL_DECNUMBER,			gay2["col_DECNUMBER"]:= 0xFF9000)
+  sci.StyleSetFore(SCE_AHKL_VAR,				gay2["col_VAR"]:= 0xFF9000)
+  sci.StyleSetFore(SCE_AHKL_VARREF,				gay2["col_VARREF"]:= 0x990055)
+  sci.StyleSetFore(SCE_AHKL_OBJECT,				gay2["col_OBJECT"]:= 0x008888)
+  sci.StyleSetFore(SCE_AHKL_USERFUNCTION,		gay2["col_USERFUNCTION"]:= 0x0000DD)
+  sci.StyleSetFore(SCE_AHKL_DIRECTIVE,			gay2["col_DIRECTIVE"]:= 0x4A0000), sci.StyleSetBold(SCE_AHKL_DIRECTIVE,False)
+  sci.StyleSetFore(SCE_AHKL_COMMAND,			gay2["col_COMMAND"]:= 0x0000DD), sci.StyleSetBold(SCE_AHKL_COMMAND,False)
+  sci.StyleSetFore(SCE_AHKL_PARAM,				gay2["colPARAM_"]:= 0x0085DD)
+  sci.StyleSetFore(SCE_AHKL_CONTROLFLOW,		gay2["col_CONTROLFLOW"]:= 0x0000DD)
+  sci.StyleSetFore(SCE_AHKL_BUILTINFUNCTION,	gay2["col_BUILTINFUNCTION"]:= 0xDD00DD)
+  sci.StyleSetFore(SCE_AHKL_BUILTINVAR,			gay2["col_BUILTINVAR"]:= 0xEE00ff), sci.StyleSetBold(SCE_AHKL_BUILTINVAR,False)
+  sci.StyleSetFore(SCE_AHKL_KEY,				gay2["col_KEY"]:= 0xA2A2A2), sci.StyleSetBold(SCE_AHKL_KEY,False), sci.StyleSetItalic(SCE_AHKL_KEY,true)
+;sci.SCI_SETTABINDENTS(1)
+ ;; sci.StyleSetFore(SCE_AHKL_USERDEFINED1,		0xFF0000)
+;;  sci.StyleSetFore(SCE_AHKL_USERDEFINED2,		0x00FF00)
+  sci.StyleSetFore(SCE_AHKL_ESCAPESEQ,			0x660000)
+sci.StyleSetItalic(SCE_AHKL_ESCAPESEQ,			true)
+  sci.StyleSetFore(SCE_AHKL_ERROR,				0xFF0000)
+;  sci.SetLexer(SCLEX_AHKL)
 ; ; Put some text in the control (optional); FileRead, text, Highlight Test.txt; sci.SetText(unused, text), sci.GrabFocus()
 ; Set up keyword lists, the variables are set at the beginning of the code
-	Loop,9 {
-		lstN:=a_index-1
-		sci.SetKeywords(lstN, ( lstN = 0 ? Dir
-							: lstN = 1 ? Com
-							: lstN = 2 ? Param
-							: lstN = 3 ? Flow
-							: lstN = 4 ? Fun
-							: lstN = 5 ? BIVar
-							: lstN = 6 ? Keys
-							: lstN = 7 ? UD1
-							: lstN = 8 ? UD2
-							: null))
-	}
+;	Loop,9 {
+;		lstN:=a_index-1
+;		sci.SetKeywords(lstN, ( lstN = 0 ? Dir
+;							: lstN = 1 ? Com
+;							: lstN = 2 ? Param
+;							: lstN = 3 ? Flow
+;							: lstN = 4 ? Fun
+;							: lstN = 5 ? BIVar
+;							: lstN = 6 ? Keys
+;							: lstN = 7 ? UD1
+;							: lstN = 8 ? UD2
+;							: null))
+;	} sci.GrabFocus()
+ return,gay2
 }
 
 #h::
-lexablesinc++
-g:=lexables[lexablesinc]
-_g:=lexables[lexablesinc-1]
+gayinc++
+g:=gay[gayinc]
+_g:=gay[gayinc-1]
 sci.StyleSetBold(%g%,true)
 sci.StyleSetBold(%_g%,false)
-sci.StyleSetFore(%g%,		0x990099)
-sci.StyleSetFore(%_g%,		0x444444)
+sci.StyleSetFore(%g%,0x990099)
+sci.StyleSetFore(%_g%,0x444444)
 tt(g "dsds " %g% )
 return,
 
 ^#h::
-lexablesinc--
-g:=lexables[lexablesinc]
-g_:=lexables[lexablesinc+1]
+gayinc--
+g:=gay[gayinc]
+g_:=gay[gayinc+1]
 sci.StyleSetBold(%g%,true)
 sci.StyleSetBold(%g_%,false)
 sci.StyleSetFore(%g%,		0x990099)
@@ -1553,7 +1667,17 @@ SearchRep(byref txt="",byref obj="",byref dicX="") {
 			if(Match.Value(a_index))
 				MatchVal(FoundPos,Match.Len(),a_index,dix[ a_index ].Colour,Match) ;continue
 		Pos:= FoundPos +Match.Len()+1 ;continue
-	} tooltip,% a_tickcount -tickss " Ms" ;TimeScriptStart()
+	} ;
+	
+	
+	
+	
+	
+	
+	
+	tooltip,% a_tickcount -tickss " Ms" ;TimeScriptStart()
+	;gosub,marginsize
+
 }
 
 MatchVal(Pos="",Len="",IDNum="",Colour="",byref match="") {
@@ -1721,17 +1845,18 @@ menu,Tray,Tip,% splitpath(A_scriptFullPath).fn "`nRunning, Started @`n" a_script
 do_nothing:
 return,
 
-varz:
-global opAlwaysOnTop, topmost, opTaskbarItem, tbitem, TBeXtyle, ico_tick, ico_cross, hchk1, hchk2, htabszupdn, htabszupdntxt, hcheckdlg,lb_timestart
-, deskY, Scriptnew, scriptraw, textnew, ayboi, TBhWnd, DTopDocked, aHkeXe, fil3:= a_scriptname, controlsmaxi, STrigga
-, evhWnd, ldr_hWnd, htb, TabSelected, Pipes, vcount, icon_array, ppidd, SYSGUI_TBbUTTSZ, g_dlgframe, hcheckdlg
-, PtrP,Ptr, colour1:= 0xEE0000, keynames:= "Lctrl,", BandIncr:= 0, match, r_pid, initpal, ChangeToIcon, CurChanged
+Varz:
+global opAlwaysOnTop, topmost, opTaskbarItem, tbitem, TBeXtyle, ico_tick, ico_cross, hchk1, hchk2, htabszupdn, htabszupdntxt, hcheckdlg
+, deskY, Scriptnew, scriptraw, textnew, ayboi, TBhWnd, DTopDocked, aHkeXe, fil3:= a_scriptname, controlsmaxi
+, evhWnd, ldr_hWnd, HTB, TabSelected, Pipes, vcount, icon_array, ppidd, SYSGUI_TBbUTTSZ, g_dlgframe, hcheckdlg
+, PtrP,Ptr, colour1:= 0xEE0000, KeyNames:= "Lctrl,", BandIncr:= 0, match, r_pid, initpal, ChangeToIcon, CurChanged
 , ico_tick:="C:\Icon\256\ticAMIGA.ico", ico_cross:="C:\Icon\256\Oxygeclose.ico"
 , _:= "C:\Program Files\Autohotkey\AutoHotkey", File, Titlemain, h3270, deskX, PaintLexForce, bbounce, bb
 , EDIT:= 65304, open:= 65407, Suspend:= 65305, PAUSE:= 65306, exit:= 6530, gradwnd, hgui, HANDLES_ALLCTL, controls:=[]
 , TBeXtyle:= 0x40110, InitH, IcoDir, ldr_hWnd, char_size, r_Wpos, colz, Palactive, palmovtrig, hil2, hil3, hil4
+, linesonscreen, firstvisibleline, ico_hBmp
 loop,8
-	global (b_%a_index%hWnd):= ""
+	global (b_%a_index%hWnd):= "" 
 loop,4
 	global (drop%a_index%)
 global _needl:= "[ \t]*(?!(if\(|while\(|for\())([\w#!^+&<>*~$])+\d*(\([^)]*\)|\[[^]]*\])([\s]|(/\*.*?\*)/|((?<=[\s]);[^\r\n]*?$))*?[\s]*\{|^[ \t]*(?!(if\(|while\(|for\())([\w#!^+&<>*~$])+\d*:(?=([\s]*[\r\n]|[\s]+;.*[\r\n]))|^[ \t]*(?!(;|if\(|while\(|for\())([^\r\n\t])+\d*(?&lt;![\s])"
@@ -1750,22 +1875,69 @@ global TextBackgroundBrush:= dllcall("CreateSolidBrush","UInt"
 ,	Pipes:= {} ; All (trouserless) pipes. :
 (opAlwaysOnTop? topmost:=" +Alwaysontop ")
 (opTaskbarItem? TBeXtyle |= 0x40000)
-global lexablesinc:=0 , lexables:=[], lexcoL_arr:=[], guiLexcoLtxt_arr:=[]
+global gayinc:=0 , gay:=[], gay2:=[]
+fag:="SCE_AHKL_IDENTIFIER,SCE_AHKL_COMMENTDOC,SCE_AHKL_COMMENTLINE,SCE_AHKL_COMMENTBLOCK,SCE_AHKL_COMMENTKEYWORD,SCE_AHKL_STRING,SCE_AHKL_STRINGOPTS,SCE_AHKL_STRINGBLOCK,SCE_AHKL_STRINGCOMMENT,SCE_AHKL_LABEL,SCE_AHKL_HOTKEY,SCE_AHKL_HOTSTRING,SCE_AHKL_HOTSTRINGOPT,SCE_AHKL_HEXNUMBER,SCE_AHKL_DECNUMBER,SCE_AHKL_VAR,SCE_AHKL_VARREF,SCE_AHKL_OBJECT,SCE_AHKL_USERFUNCTION,SCE_AHKL_DIRECTIVE,SCE_AHKL_COMMAND,SCE_AHKL_PARAM,SCE_AHKL_CONTROLFLOW,SCE_AHKL_BUILTINFUNCTION,SCE_AHKL_BUILTINVAR,SCE_AHKL_KEY,SCE_AHKL_USERDEFINED1,SCE_AHKL_USERDEFINED2,SCE_AHKL_ESCAPESEQ,SCE_AHKL_ERROR"
+loop, parse,fag,`,
+	gay.push(a_loopfield)
+global lexables:=[], 
 lexable:="SCE_AHKL_IDENTIFIER,SCE_AHKL_COMMENTDOC,SCE_AHKL_COMMENTLINE,SCE_AHKL_COMMENTBLOCK,SCE_AHKL_COMMENTKEYWORD,SCE_AHKL_STRING,SCE_AHKL_STRINGOPTS,SCE_AHKL_STRINGBLOCK,SCE_AHKL_STRINGCOMMENT,SCE_AHKL_LABEL,SCE_AHKL_HOTKEY,SCE_AHKL_HOTSTRING,SCE_AHKL_HOTSTRINGOPT,SCE_AHKL_HEXNUMBER,SCE_AHKL_DECNUMBER,SCE_AHKL_VAR,SCE_AHKL_VARREF,SCE_AHKL_OBJECT,SCE_AHKL_USERFUNCTION,SCE_AHKL_DIRECTIVE,SCE_AHKL_COMMAND,SCE_AHKL_PARAM,SCE_AHKL_CONTROLFLOW,SCE_AHKL_BUILTINFUNCTION,SCE_AHKL_BUILTINVAR,SCE_AHKL_KEY,SCE_AHKL_USERDEFINED1,SCE_AHKL_USERDEFINED2,SCE_AHKL_ESCAPESEQ,SCE_AHKL_ERROR"
-loop, parse,lexable,`,
-	lexables.push(a_loopfield)
 
-lexcoL_arr["col_IDENTIFIER"]	:="0xFFA044", lexcoL_arr["col_COMMENTDOC"]		:="0x008888", lexcoL_arr["col_COMMENTLINE"]		:="0x701530"
-lexcoL_arr["col_COMMENTBLOCK"]	:="0x701530", lexcoL_arr["col_COMMENTKEYWORD"]	:="0xA50000", lexcoL_arr["col_STRING"]			:="0xA2A2A2"
-lexcoL_arr["col_STRINGOPTS"]	:="0x00EEEE", lexcoL_arr["col_STRINGBLOCK"]		:="0x66A2ff", lexcoL_arr["col_STRINGCOMMENT"]	:="0xFF0000"
-lexcoL_arr["col_LABEL"]			:="0x0000DD", lexcoL_arr["col_HOTKEY"]			:="0x00AADD", lexcoL_arr["col_HOTSTRING"]		:="0x00BBBB"
-lexcoL_arr["col_HOTSTRINGOPT"]	:="0x990099", lexcoL_arr["col_HEXNUMBER"]		:="0x880088", lexcoL_arr["col_DECNUMBER"]		:="0xFF9000"
-lexcoL_arr["col_VAR"]			:="0xFF9000", lexcoL_arr["col_VARREF"]			:="0x990055", lexcoL_arr["col_OBJECT"]			:="0x008888"
-lexcoL_arr["col_USERFUNCTION"]	:="0x0000DD", lexcoL_arr["col_DIRECTIVE"]		:="0x4A0000", lexcoL_arr["col_COMMAND"]			:="0x0000DD"
-lexcoL_arr["col_PARAM"]			:="0x0085DD", lexcoL_arr["col_CONTROLFLOW"]		:="0x0000DD", lexcoL_arr["col_BUILTINFUNCTION"]	:="0xDD00DD"
-lexcoL_arr["col_BUILTINVAR"]	:="0xEE00ff", lexcoL_arr["col_KEY"]				:="0xA2A2A2", lexcoL_arr["col_USERDEFINED1"]	:="0xFF0000"
-lexcoL_arr["col_USERDEFINED2"]	:="0x00FF00", lexcoL_arr["col_ESCAPESEQ"]		:="0x660000", lexcoL_arr["col_ERROR"]			:="0xFF0000"
+;loop, parse,lexable,`,
+;	lexables.push(a_loopfield)
+b64i:= "AAABAAIAGBgAAAEAIACICQAAJgAAADAwAAABACAA/xYAAK4JAAAoAAAAGAAAADAAAAABACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP///wD//v8A/9T/AP+i/wD/av8A/13/AP+G/wD/ov8A/7P/AP+g/wD/JtAG/R2kNf0fikL/AJMC0P/SAEz/TQAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAAAAAP7//gD///8A//D/AP/c/wD/r/8A/0v/AP8h/wD/NP8AxTzcAP8u0wL/RM8R/Tjg0v5P0d//A5EQu/+9AC//MAAA6wAAAPMAAAD/AAAA/wAAAP8AAAD/AAAA/wAAAAAAAPv//AD///8A////AP/4/wD/zP8A/2z/AP8N/wCOAI4A/wD/Av8v2AP/VdYb/Czo1vxE4OL/CpoRAP+WAADIAAAA/wACAP8ABgD/AAEA/wAAAP8AAAD/AAAA/wAAAAAAAPX/9wD///8A////AP///wD/2v8A/4f/ALYVtgD/AP8E/wD/Cv864wL/Vdgg/ST02/076+X/Q6Yy/5RwIv6uciG87lcZAN0AGwD/AAkA/wABAP8AAAD/AAAA/wAAAAAAAPP/9AD///8A////AP///wD/5f8A/5r/ALAOxgD/ANQB/xrbA/9G2wb/S9gv+ybl4/pZ9/HtUujt0Ha37q1XZOvLgnG9wctpMCr/IAxV/j4BAP8AAAD/AAAA/wAAAAAAAOH/4wD+//4A////AP///wCu69AA/wDYAf8a1AP/HdUE/ynWBv821RH/ML569GLj7fkX5uf5kOfm7s+w6vXijeW/hl7w5raHlP3hoBr/PdYEAP8AAAT/BAAX/xYAAAAAAMv/zgD2//gA////ADP9pQD/L9kD/zfbCf8e0BT/F8wW/xbKGf8WwT//RMDd8knC6P0s0qzbTJ3tz5FU7/Xle8fo0G7qv4JW5/+2r1D/QeQGKP8oAET/RQBy/3UAAAAAALr/vQDv//EA/8X/AP8s1gL/MtkP/x+2Vf9+qaX/o7am/6q6q/6Yvcf+bOvx/zawof8nzCz/d85B/tiSU+bfd3T88oLXp49J8dSUeaf/S98P/zLfAbT/tgDP/9EAAAAAAKn/rgD/cuMA/yLUAv832wn/GMBJ/5Oj5f/VvPL/2MDv/9u37vXO1e39e+zt/7fphf+g2Bf/b9MK/L98ReGUTOixo0rttpxL8c2lbMX/PdEM/yPdAfb/+AD+//4AAAAAAP9A3QT/SuMD/zncBv8m0Bv/Pp6x/8qg8f9Ircz907vq/uni6/+gr8b/btft/8To2vD/rlzc+7Yq+7Vjq4kwL/PprlLuh24o8f7InHz/PuAJ/wDXAf///wD//v8AAAAAAP81xTb/K8VP/yHCS/8Os2f/coHs/5ad4P+kq4H96qHU/uyh2P93rXH/S6XN3nmE8PLrhNfy/6Gk/PeG3PdvZvGsRUXz4cdi3f+Fzyr/RuEF/2DeAP+c/wDVqNUAAAAAAP/FzeD/vLDs/7Kd6v+dle7/o4Xy/4qOuf2sl5jJapVgyYCHNP9Q2Rj/I7l1uBtd7ollSPGshUjuuYQ48KxAO/NyMB7z/7+OsP9l3xb/Nd0B//X/AP92/wC2XrYAAAAAAP+Jp8v/bpTb/2aU3P9elub/mXDw/66P2PKjhuvfgnKHJn8PKv1IzRD/Fa9wokJi79tCnefpL3/K4keB6PQFs/KVCEny7yXSvP9P5iD/WeYC/kb/AP8i/wD/Jf8AAAAAAP9L2Rz/PdUi/yDMJf8quEP/pHve/q6R5fuvkOv8ZG+s8pCfC/8WxjPnO4LMp16m7P9D2Grlep1nyndj4bs1XPHlEZHxuhit5v868Fv/W+MR/07eCP842QL/J9YBAAAAAP872wL/NdgE/yHVAv8rzgb/bIlz/52V7P+Sdcj/jW5o/kR9Z/8hjazEWY7v7zrXrv9j4B/Co14/q3JT2rQvXPLaJ6/vpy+T7eoj0MT9Ic1y/Rq8aP4XnjP/KM8CAAAAAK/+0ADn/50A0/8AAP9c1QD/AqsR/3h/xf+Jf+v+fWbt9Hh17+hki/HTTYbx/1S5fP9G2hW3yWsnkWhEluskt9noKtjbxjWu7Y9Qau+UJ3jvkR1j8NATZY7/FpcCAAAAAP///wD//+gA//8eAPj/CAD/UscA/wBxCv9cXy7/XGE1/mJfOP5EZ17qTYjr7l+IrP+KrEH+fXGD90twmv4jvmr8JNWxfU5b7vwhz7z6JLZ99xSQZP4ZoyDOGAAAAAAAAP///wD///YA//9iAP//PAD//yYA/P8AAP8zYgD/KWIA/ydiAP8AYgPvaHuz5GyT5/yFfZPgcoXuzF+U8egq2rm8aZHr30Ky3/9L2Dz/Ud4M/yXNCP8q0wL/AP8AAAAAAP///wD///gA//+GAP//fgD//2UA//9TAP//RgD//yoA9v8EAP83YgD+VGIl7XGA5/mIe9n5nI7d+WSU5uM7uumTXWbv/TG+cv9Y4Qv/NNUC/yfVAOEA7QD/AP8AAAAAAP/+/wD///kA//+JAP//lAD//5EA//+KAP//dAD//z8AtvoAAP9Z5wL/FYMc7XCC5/eDhOj6dZPW6k1/1NY8htTyNI6M/0TND9VrugDmAPAAwgDCAP8A/wL/AP8AAAAAAP/u/wD///oA//+PAP//lAD//5EA//+tAP//iAD/SdMA/zfZBP9R3R/+NH+2+1N37P8igDf/AG8G/wBgBf8EYAX/FZ8C61WpAP8A/wD/AP8AxgDGAP8A/wH/AP8CAAAAAP/D/wD///wA///TAP//1gDT080A9/fVAP//1QD/LNIA/yTSCf8gqFzamJft91OCu/9B1B7/QeABAOIAAABYngBuTtsA8zn+AP8Q/wD/AP8A/wD/AOMA4wD/AP8GAAAAAP/A/wD/9v8A//b/AP/6/wD//f8A//3/AP/9/wD/LdIA/yTNCu1ll5LBpKLk/xiuSv8Z0Qf/FtcBAPwAAAn5DwCU96AA++38AP+6/wD/hP8A/yT/AP8A/wDBAMEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/+H/AP/B/wD/gY8A/wAHAP8ABwD8AAcA+AAHAPAAAwDgAAMAgAADAIAABwCAAAcAgAAHAIAAAACAAAAA+AAAAPwAAQD/wAEA/+AHAP/AHQD/gDwA/4H+AP+B/wD///8AiVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAWxklEQVRoge2ZWZxc1X3nv+cuVbf26q6u3ru1tHYJtQSSAIGQDBizC7AdG4WxxzZJjGNmxnE89jzMGCd2YsfkYULsjJ3xnmCxhG0wlg0GARJa0C4hJLW6W+p9r71u1V3OmYcuSQ3Ik5mnecm/P7erqut03d/3/Jdz6n/g3+z/r4kLT/qu6CP5qSS0XmaEBTQC4bn/MWvbZT2bHlQoD+EL9KkMyd619rVq/egd1YHEVNOTqee7mukNaBQBTyigEdn9rLj4WTGiXMMG7uNebmALzbQgpAZVwAVywAFgF/ASMH7p/saFJ8l4krr1dbAO0N4HoNeuy9hDQnHcA3w0V2EUKyS8zuKNwXTuD1NXHi6PHttqNwwbzyQtXFPDVwKFBtQBEvBBwyegqoSUIOJbJKoJ9KwBfcD5muC9wClgcva+j/EY3XRfAkDVRFqzj+ryej9gE18FJEJJ0CQqbOKqI8kxN+1U9LZcLNvu3TE+ZLwTj5IzwriqguPVJigyDUv6Ie24rJBF6t0yWqUEWQ+GjFnBx4BRYOy9932YhwGEwWXMB4aBPLPOELXH0okTeNks0XXrEJaFAjquAl5CoVBmEJWKYjedNw+eOpo64HaWrvXWZxeePdG0pTMq+lMNlDRwK/HZ+5Sq0LQX/mCvxyL3KC3uZuoqebSCBzO1mc/XPDXHhhiinXYA4xJAAAjNqpXMeu9ETbgGaL6Pu2oVNrAG6AU84Isfu5lj33kF4UOwGRmLYWuNDAz3BHecfWLB0mi81JCfx3UHTrNjY4y+/BjqF5Pw2QUKXBB52FOCwwoe6/Q5P2AQpb8m5oNx+ziPs4QlFwDmeGArsJCL8S9rArXax/hK4deG5pnNrRKAeBTRBLIf/CrSasBJmGSW22Lf1KS5U4sm7402+J2DZe2KZ38r9ld8tABoF0JUCsCEugjyaU1X0duUejI6xdanJgjS8h7xe9jDNrZRCwoFOBcRv/r3XyXUGrrogQu5c8EDQtMY37WLsGWRsW0IhykCS0QzD247yxd+Va+8MUBHWXX4vkuhZ4iRmQZ/pbXYnS+bxQJjmfBC3SIeWSqbZMptJVJpC8ar7W1xvzMitTpR1bxwPe7iSFjt/PAAS/Yl0OakaYkSDTQIZouPHGHkUlGcGZ+hLl0HAhzgNeAoEKyNVlwsGnjMjskCI8zmy+vqIHgTHL73NqJhOHkC7flThJPbvM+1d4w8ImzDqixqskMFYQennGpuwvGr+aIoz2RpCnjYWnw0Pt307BI99PyCToZMRbWn9STye9u5hodI0MKbvMkmNgFwgAOsY90cPJ2LdVm9T7CqCa7UrmrttV0LoxLQJq5i2vRY++IbPCGa2BFfKn2Fnw+pQn9js9921iMw7GlL41o401iIyKqvr40mmNYL4nR4pzjTOJy+7+2HUxP9wXy6RduRiDDWdW6Fb6/5CzVWgIQB/undUANYxzpgzjrwntrPJZBqTXQBKALly0CUa689XGAzv7laoe1D0z6pWjvDpZuCp8qWE4gNne4OHzxdVpiRVGsgJpLlf0RbPLbEvz8yP/rfN38v/eOOv2/748x/vtefiZ+XESpmlLyRwq9WkcckqnHp1xDaN5h+9zPU0/k+gPeZrAkrMlvRcrWZvuCFLBXOchw4XXtH8llxHJ5ViMMIez6h1pbqFq1FbllXSpZ3LwkeiL3lbU+Fs39qrzKXmkEtoFslvzsZGAxM17/++eP/fss3t/y08aQ9va7jdPQj1ZQ2EYjiBpOUZQWcKfBAHePrMtQFk719pFl4eYAL4keYXfgyc2b/DBNAis/ea3HD4Hqw119a9ZYCfwQ4aObVflfELn0yemCobqeo763kOn7TEHc7/bxc3fTsQDyfz9GemlFHmyfia/Z+rtcvRvUGs/Guo8l/NreK/3RzpSd6NNBN3jQRRj22nUFKF6EJZK+Ff5bvqHv4weUBvNqM9wLTtfApo3hE/EfKfJHe1kbcEQTivYGnZn8JezGxJte9teTJ9a11qtLrtOy/Tae3FDMTb0/XvzzspLoMlJE76rttjt7fXSeOYQRGHn7pzjX/beWj837e+ZPG+088dFs1b4xXAgw4PqVxj7zhYAR1/LBJcXP3D7zpo+cvD3Bh9vuBIpIyLs+KIyTv+zsOPINmjWC5N1PndxKXJoZZBi+FJnJKGFPoiapa3G7zCeN8NeTG5w+sjBu/a5JMVuIMr/6Q8WhmRjUXXTtl4eIU9IxTjGYCEXxvJLp7uX1F6zG5N6iM0kb7ZKSc12VPviyL476cKkhUSNem6wzrwJBN7r7mmQ8C+LWw6UcyShWfAvvEEeQdt5B9G724gJR1Hx+OJLgtq7HAcTBDDspJqEAkXNEjcc/0Z9xYIUeaasabybaO3KoYT/ZS0E5SMO9V02+vGM71FA8t1ARN1+RXpFRl3hVW2W2LVsKlh/bdPvXF7neav7v6b2PbRh7Y6pSrnlN1RSQAp22pbDd0utnp+kpIWIe2zqz1LwJkGWVAvU73wXvYv26Mn6g/AfEtUFcQfkDh9KBlhonxBW4KhvmKmWKRlUf210N1RJKsOpqer2rzLFfLumXNsGaErfv+/Z1iuL6HspHEUz7u0JJJeSTyshyb2pVqUGtWhY01C4eC2Y3PLd2R+Pq++4ZMAs763NXsTOwQjy99wlADGWO6MKFpVkD4Smm229jWUvmLxnQQ7fYGLgHIz69A71nBcRfWG80cjT6PXA1rvwteL6JSIThzJ13hLrauXMSCvUcolQP0hBYyZsdEceJVUwWrwebSsEpJO5lqX+g2L2zNaYv3+vPzSSOhEhiGhdCSBS2RE5HzMrY4ImPXl9sq85/tm2qcqJT8vDDTwsir1xJvcv3UKvWH+z8z6qPGJ6pyrJLDE0JYu+H0/Eiwb0EYUReYU0a9SUSgHpSLJn3wSyjxBurIVQo3hDFWpm56CdcZQa4+NaSoJMR4OCrftn7InvIhba82qpdXttIUM8XCrKut6CH1QG90z7xSOtd5w9iWK72Ydp5GSpVIWOXfWhILLYu0RK365vEz0dRrsUf1zeNb/JkqxoQYV22D0v3Y6KemrIbAE5MpDhVK9LoK13QJdNtk0hrFiAlSzQEINaFJH1064NkIKcH3EJ6PVj6HNbSVpXaaW62SanDniVy8k5zMVG6Z6NC6I4VgtvND7GrbI/osQTHokxnLhRpHs+33JzvPRwL95Tu9oehJJ0XZnAi6oUxjQnMDSV8zrDMLx0XreIe3euDj/juhjPHT6F8599gfdrr00InzS9kVD9MfFWSkRLrTeFRw3HGkkpe+awHwhaWPRFyHhOsQcx3CToWQaxNzXFLZDjrPbuYefzm3Xb1cMWWLQXNK2a1FbfkkhqWKjNr3Z99pXFkoJA9GXA18zTeckpVYmK9/uXWq9Xyio6dbuBFt2BnQaXAqHWfbCmu69rtN9W59KFEKy8XFTnE8/E7AEln55ck/HfUb9F9UWjhiaEzpClt4uMEc7uI38WUa5YFqZo4H9p5kXlBjhSGJYyKkjo+OTphYMcESt8IthRLRfFqb9B2GA6Ny5US0iBkPT+qd9sDZl35sPfPlF8x/PLujEnwxnE1Bb3oytrsv+KkrTtT/TTTqfnxzyk5k9LOBE35Ti3PfjFuqVEe9rUfn27vVgtCwORT4F/NHbNM/4iUs8+RUF+8YGjktQLU4gu8cQnZ/8mHUm49Rd6pIhAJh6i4BxL/MA+Uid89kCZWq6AagymhGFVMZhPwqwYDAGx8gZ1SIyHYapCYzSTg+/KsXR58Z+Vlz/W8jzuHPnJq67pUrnRhkWvPmiZmxRO/rSu8+GvxG8x/Hv/LJ433eZP4ceetsMKZ6l9SPalnrJG7gZX6jNeZa3QXJjxZUF0fLOhldUVU+UlSR3TNfQ539O1gFoXKUkBsFa44H5q9mbedSFk2VYKAEZRe0MmSLCMtCS1dRdhQnP0iBtxnrul8bPH8mcTL0Yv/zhxdIda28yUirNr0zu1QLhFHCwE9o2MlyuBid+KzaYf+BcabnnVQg2lwfqu+UTmG+YP6g9lyuogmJVq6cVssXfZrJDXpp361MNz5F1RjHLw0jRR3MnP8iDInZPX5/bbFy5gCc2cVbM6MsLNmYJwbRkKBHqZZPollJEv1TxEPL0JtiROMOPed+JvaaG5iIfiRQuOPNZarSdoUTiyxWXd+OhAIJhKwQyju0T8ti66D2Q7Fuw0fl+us+5hQSmlvSND+rhTThVwzjXRWQr1aNE6Pf10bFfm30zjui+6Nm3S0RDEvO7k8q/TDccZi6hvbZXfM54Ffw69t+fQkg+COemrLpMzRiyzV0YYIC1/cRJcUyZwH3OatoWL2Y9JnHmdd+N++WV+tjlVhrvdqQavKUqU9PBaZOLqV/+bvMFBRtk1G1vhClubFuKenr11Y+/dC6yR9paqIFlS0iEnlHNPvbVTI5pgKJtm8FXuv5c31qYCYZv7ZxdTklfhPvYTLSge8VQfvwXfJXOx7ijqZ/gF8CU3Db8dsuVaFv3fSI3dTCeGOa86k6+urC9CRMeiIOPXqR4UqIVLWFJe1rCfafIthxkD5zKVFSfDKYDtxtJowbEg1ySzFIu3NQTOUduvwF3L1qs9tgLloty/ctmziQ8I63MbrnFgqHm0UxU52xFp7dPtUYrkgt1hn3z43s1ycn92rtt28qR13zreaTZAwdxy0j3XFU+6E70e4exWqKQT+c/C8nLwH8efcjvi4oGyZ5TVLQoWAIikJgK5+SOwx+E1fGr6UuuA5r5gVY1UDUnic/sjiuGtdZIpouivjKdlG/9zmmzRhrEkGx7nrDEkNbQtP6CrX/TjXw1LKKva9cKQ31u5Z7fMC6duCX327pHX9bb1h2g5e8dZ3se+1J07hyQyC0MDHe0S/OhSYoYeC7Uwg3j+p96DEWLN8En4Z0Z/rSdrg0jCr24dvTONU8FbdE1bNxzQBeJISbtuiJ9bOz93fYnkV4qJW1mZdpMbZrw5NZfaIyKiacqhh7dZppkaE52cqVNy8nKE2KH1/L0Y1KPVHBODwY1M+fsVKD09nmU7md1r76xj+rFopnxanpF3R/fbJkLVrsn3v0fzS42B8/v4b5VRvDzc3mgnLhxsDPIAIkgfSchezhBx8hOB/1P3+8mz39/VzVMR/hghFGEwo0hXJ7kE4HizuuormUJjxZpr6qCX/oEOVjhymNH6LkHpdurMlfUBelrX2x8HfZnF26lu2DA+JtazwxmTqdKrfvirm6LqoDQvlFK3B1xD6WKDujWstdm52mq65S5548FCgOvhtMXrv+TP0L2kFLx9VMUBL10eFxFoobZ0WLOQCxp0vot2e5/pEUtxSuwz4J0kZTHsqIIoVACg2/VCKQhyUb7yW+6HaiS24i2Xoj9dEP0bBkM40bN8vG9u5ccuVp0yzu1Yvt17I3lOfVyKNiNPiKKItnkF4POBvQp+t8vSiNRGD1lQtcu98IlGeqK1evdHtffd0y3LJYvGnTYNPr+q7GBhwkihgq8oBPUrQiaj8Xq1CEGCHCBLBo/1so3gheBikdkC4EwpQTkqHmHn4zupvQnjFuWf4ZEpMOcm0jylVoZeANJdgwUW85SaLGNMEXH8O6eRPmzDiGk8F08hiqHt0cEWbbJn8qG5h61mtJxZO3P7RskW7ozmS+1cuPCyvV5lqOZjckCBoWmivw33jql1wnVjDIIBEihAnPBYgQIIiOQZ4sM7/bzsY9n+edPwO/CHo9fjBKrqmD0+YJ/mlmL7uHH6dB+ni7BUqT6CENw7K08FtBVor56vZb16ikOCzW7X+aPQ2SET2GUOuImquIF1JYGYJGch5VK9v3pKXVXembqduP9ExGdBlW7YtumoifNQ6EwRHg+2HkF6Lb+CX/TIIEMWLEic8FiGJhYWJioLNR/Alqo6RuzykyG1dIWUXpFsqKkk0bVKI2o76DqVyUUgjlc6FxHs5V6HOGRQcJNt5hyaZ/stWNibR+XkRlIB+o3FM29a79YSmHA1iJcMNwVEVeMQJ6U7GQ7+j568cDrUs2Fjfcdc3BFd/jXUunYk8i63f4bBP3s5vdNNBAmjSNNF4CCBMmRIgAJjoG1GKsRSxn5+51rNl8QPkZlB7BD8awdRPbd9ClC8pBqNkWu5CSIDpyyONfdviq80NN9jxEaY1zIr25WZOxzN78XcdGzgYnDhhq1BwndN2SVu3B5QWn6LQdOzISDwYS8uqP3jVIRv91QGcKcP0ytOQMlrGMGDGSJEjTQBut7wUIE8EiVAO4kOiCbdoBnti5hbV37ZTOMHh5lNBBmMhABCEtwAclEdLH1zymGvMcLZbZ7d5npLftSSYPH+aW9nPGcP3ClNO8Hvfp5qKK2iHTCTuuqUiWcuX5+e89b3Yubs921gXfUAbvDm7Cjj2N707DkW2KNS8K6qknRJg4MQYZuqTUIngxMfTLNCs+IXZy9OfPsuof7uX0M0hZAqXQfIFCgBCgxxCBBBg+dirKiDEiXjv0TWNNd31uQf0iu5We1ljM0Ev1WxtzXe1pZ3OcpsMCt2/GWTb0ptPQHG111n9i60k9op705lWGJudp1cxBU1n7tIu7tgxZ8uTJkGGamUvN3R0zL7GhbgNxEpcFQALTIM/7/K/jD7J11084swccBarWmBQGGCmEGUXzJCG/wiJ3Wn4+ZxW2drVUrIZ8Q6CQmcLrNFVxpaO2V/s0URWqfywvfEdKa2Hw3JWbrv+rNz586Ldj8V+UutRqz8s53pfrHpYrpPjA+Zw2V6mBfrEKXdYU4ILm6Wz1fgIFmB5+nmvzW8k1InNRhOcjnCyKKMoM4WGSS9na6UWTcawlCcNpUl7gTLqc65xwR42Mtlaa2nPTfdINySpN2sSyO+7d/qvX3977wg0/RPFz7RUBJOFH6j9cVpLEnwtgoF2uw3vBfGa7uS6zHV0bRqIe5CExgZ6YREgLZTeiRlpQARPpCaoyQFbzPa+cdcT42fBYTonvPynTp4OpJl0mpZlav1bpYQqRDjG6s/nQzAtvfU1X53ZBA+L9M345uwigof2fx7u1q8rFdnTYDV96X2FqNr7K4imFFAZS+XiOj42me+FSmKAnssOTvDLwff2UAVKh4wOxL0sy3z6iPSe/HuBzb1mkcRG4zAau5OvANy4v6+KUmwTQft9ZqmS2Je28F+Aa75q5IxzAL0fAyyKEgVLgVySOI4SHhBkNvypwE+CHFuCHVuKHl+HzA83/tfhrj8CvHdpkhSAVZlu0Hgd/v3hgbhUKof8+AJdLffUCs+3qEtR5dRwRR3hNvaa+xJd80jARA+GhOcVa2ihkNeJLvbWi7JGociS+AK77JpS3CX4AHN0H6CjAQ1w8W5G8Adzw+8XDHA8EMPlAmvs18eXaVWK2bZ2tgQhYE1rDl+Jfgjp4YvImUCB00APgu0jfQwWDuh6KRCGI5jkIy4LKNLTzHJv4AouvXoz2Cw2oQYDkK/+6eHifB96TxIrZQ4FibebzzJ50XDgwcIEUs4doUcCCdfwl7jR4NlQmkI5LdaZIIZGStpET8t2qKLmuqMYjcNcX4RQREiSIEEb7dzpySs6el3QD3/3Xxb8HwMB4b9q7zB4OTDAb9wVmT8tHaiBdQP2scMJAHLrCG8GAk9uR7jjCr1It2PS95qmf2jNscB3xUkQxWbcS6Yn/SpjbSJIkRgwDA6/BhYb/O+EfAAgQuPRXxWzI1MolQ3OuQWAR0MHszNcx+w0pNAvjmQ4r2gMc/w4ENWgLMUHZ+Hlhgl+YGvnGZsovvjnEH/FVcvRSRx1JklgEqWD/v6kH/jctmrC8OcQgsAAAAABJRU5ErkJggg"
 return,
+
+b64_2_hBitmap(B64in,NewHandle:= False) {
+	Static hBitmap:= 0
+	(NewHandle? hBitmap:= 0)
+	If(hBitmap)
+		Return,hBitmap
+	VarSetCapacity(B64,3864 <<!!A_IsUnicode)
+	If(!DllCall("Crypt32.dll\CryptStringToBinary","Ptr",&B64in,"UInt",0,"UInt", 0x01,"Ptr",0,"UIntP",DecLen,"Ptr",0,"Ptr",0))
+		Return,False
+	VarSetCapacity(Dec,DecLen,0)
+	If(!DllCall("Crypt32.dll\CryptStringToBinary","Ptr",&B64in,"UInt",0,"UInt",0x01,"Ptr",&Dec,"UIntP",DecLen,"Ptr",0,"Ptr",0))
+		Return,False
+	hData:= DllCall("Kernel32.dll\GlobalAlloc","UInt",2,"UPtr",DecLen,"UPtr"), pData:= DllCall("Kernel32.dll\GlobalLock","Ptr",hData,"UPtr")
+	DllCall("Kernel32.dll\RtlMoveMemory","Ptr",pData,"Ptr",&Dec,"UPtr",DecLen), DllCall("Kernel32.dll\GlobalUnlock","Ptr",hData)
+	DllCall("Ole32.dll\CreateStreamOnHGlobal","Ptr",hData,"Int",True,"PtrP",pStream)
+	hGdip:= DllCall("Kernel32.dll\LoadLibrary","Str","Gdiplus.dll","UPtr"), VarSetCapacity(SI,16,0), NumPut(1,SI,0,"UChar")
+	DllCall("Gdiplus.dll\GdiplusStartup","PtrP",pToken,"Ptr",&SI,"Ptr",0)
+	, DllCall("Gdiplus.dll\GdipCreateBitmapFromStream","Ptr",pStream,"PtrP",pBitmap)
+	, DllCall("Gdiplus.dll\GdipCreateHBITMAPFromBitmap","Ptr",pBitmap,"PtrP",hBitmap,"UInt",0)
+	, DllCall("Gdiplus.dll\GdipDisposeImage","Ptr",pBitmap), DllCall("Gdiplus.dll\GdiplusShutdown","Ptr",pToken)
+	DllCall("Kernel32.dll\FreeLibrary","Ptr",hGdip), DllCall(NumGet(NumGet(pStream +0,0,"UPtr") +(A_PtrSize *2),0,"UPtr"),"Ptr",pStream)
+	Return,hBitmap
+}
+
+b64_2_hicon(B64in,NewHandle:= False) {
+	Static hBitmap:= 0
+	(NewHandle? hBitmap:= 0)
+	If(hBitmap)
+		Return,hBitmap
+	VarSetCapacity(B64,3864 <<!!A_IsUnicode)
+	If(!DllCall("Crypt32.dll\CryptStringToBinary","Ptr",&B64in,"UInt",0,"UInt", 0x01,"Ptr",0,"UIntP",DecLen,"Ptr",0,"Ptr",0))
+		Return,False
+	VarSetCapacity(Dec,DecLen,0)
+	If(!DllCall("Crypt32.dll\CryptStringToBinary","Ptr",&B64in,"UInt",0,"UInt",0x01,"Ptr",&Dec,"UIntP",DecLen,"Ptr",0,"Ptr",0))
+		Return,False
+	hData:= DllCall("Kernel32.dll\GlobalAlloc","UInt",2,"UPtr",DecLen,"UPtr"), pData:= DllCall("Kernel32.dll\GlobalLock","Ptr",hData,"UPtr")
+	DllCall("Kernel32.dll\RtlMoveMemory","Ptr",pData,"Ptr",&Dec,"UPtr",DecLen), DllCall("Kernel32.dll\GlobalUnlock","Ptr",hData)
+	DllCall("Ole32.dll\CreateStreamOnHGlobal","Ptr",hData,"Int",True,"PtrP",pStream)
+	hGdip:= DllCall("Kernel32.dll\LoadLibrary","Str","Gdiplus.dll","UPtr"), VarSetCapacity(SI,16,0), NumPut(1,SI,0,"UChar")
+	DllCall("Gdiplus.dll\GdiplusStartup","PtrP",pToken,"Ptr",&SI,"Ptr",0)
+	, DllCall("Gdiplus.dll\GdipCreateBitmapFromStream","Ptr",pStream,"PtrP",pBitmap)
+	, DllCall("gdiplus\GdipCreateHICONFromBitmap", "UPtr", pBitmap, "UPtr*", hIcon)
+	, DllCall("Gdiplus.dll\GdipDisposeImage","Ptr",pBitmap), DllCall("Gdiplus.dll\GdiplusShutdown","Ptr",pToken)
+	DllCall("Kernel32.dll\FreeLibrary","Ptr",hGdip), DllCall(NumGet(NumGet(pStream +0,0,"UPtr") +(A_PtrSize *2),0,"UPtr"),"Ptr",pStream)
+	Return,hIcon
+}
+
+CreateHICONFromBitmap(pBitmap) {
+	hIcon := 0
+	gdipLastError := DllCall("gdiplus\GdipCreateHICONFromBitmap","UPtr",pBitmap,"UPtr*",hIcon)
+	return,byref hIcon
+}
 
 r3load() {
 	reload,
@@ -1792,6 +1964,7 @@ Quit() {
 		sleep,200
 }
 
+b64i:=
 ; WM_MOUSEMOVE(wParam,lParam,Msg,Hwnd) {
 	; Global ; Assume-global mode ;Static Init:= OnMessage(0x0200,"WM_MOUSEMOVE") ;,init2:=0,TME
 	; if(init2=0) {
