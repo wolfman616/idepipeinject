@@ -1,9 +1,7 @@
 # idepipeinject
 full-featured script launcher, debugging tool and editor loading optionally via pipe or process injection.
 tabheight,adjustment added.
-![Clipboarder 2023 05 08-003](https://user-images.githubusercontent.com/62726599/236794307-bc766e73-c1aa-4417-8fd7-4d3cd31a215c.jpg)
-![Clipboarder 2023 05 04-006](https://user-images.githubusercontent.com/62726599/236252692-02b2a298-8aa0-4bf0-8389-a28bd7ca9435.jpg)
-Done:
+ ![Clipboarder 2023 05 04-006](https://user-images.githubusercontent.com/62726599/236252692-02b2a298-8aa0-4bf0-8389-a28bd7ca9435.jpg)Done:
 Drag drop
 resizable main
 flyout pallete
